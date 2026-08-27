@@ -80,6 +80,17 @@
     color:var(--charcoal);
     min-height:48px;
   }
+  select{
+    padding:13px 14px;
+    border-radius:10px;
+    border:1.5px solid var(--wool-cream-dim);
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:1rem;
+    color:var(--charcoal);
+    min-height:48px;
+    width:100%;
+  }
   input[type="file"]{
     font-size:0.95rem;
     padding:10px 0;
@@ -211,6 +222,17 @@
       <button class="secondary" id="suggestBtn">Auto-suggest size</button>
     </div>
     <p class="totals" id="totalsNote"></p>
+    <div class="field" style="margin-top:16px;">
+      <label for="patternSelect">Pattern style</label>
+      <select id="patternSelect">
+        <option value="scattered">Scattered &mdash; no two the same touching</option>
+        <option value="stripes">Stripes &mdash; a pattern per row</option>
+        <option value="diagonals">Diagonals &mdash; running corner to corner</option>
+        <option value="checkerboard">Checkerboard &mdash; alternating</option>
+        <option value="framed">Framed &mdash; one pattern as a border</option>
+        <option value="rings">Rings &mdash; from the outside in</option>
+      </select>
+    </div>
     <button class="primary" id="generateBtn" style="margin-top:14px;">Generate layout</button>
   </div>
 
@@ -251,6 +273,7 @@ const resultGrid = document.getElementById('resultGrid');
 const legendEl = document.getElementById('legend');
 const resultNote = document.getElementById('resultNote');
 const clearAllBtn = document.getElementById('clearAllBtn');
+const patternSelect = document.getElementById('patternSelect');
 const saveWarn = document.getElementById('saveWarn');
 
 /* --- Remembering her work ---------------------------------------------------
@@ -270,6 +293,7 @@ function saveState(){
       blocks: blocks.map(b => ({ id:b.id, name:b.name, qty:b.qty, displayUrl:b.displayUrl })),
       rows: rowsInput.value,
       cols: colsInput.value,
+      pattern: patternSelect.value,
       userEditedGrid,
       result: lastResult
     }));
@@ -295,6 +319,7 @@ function loadState(){
   }));
   if(saved.rows) rowsInput.value = saved.rows;
   if(saved.cols) colsInput.value = saved.cols;
+  if(saved.pattern && PATTERNS[saved.pattern]) patternSelect.value = saved.pattern;
   userEditedGrid = !!saved.userEditedGrid;
 
   if(saved.result && Array.isArray(saved.result.grid)){
@@ -875,6 +900,110 @@ function shuffle(arr){
   return arr;
 }
 
+/* --- Pattern styles ---------------------------------------------------------
+   Every style except Scattered is a geometric ideal: given a row and column it
+   says which block it would like there. The ideal ignores how many of each
+   block she actually has, so the fitting step below reconciles the two - it
+   places what it can, then fills the gaps with whatever is left. That way a
+   pattern still produces something usable when the quantities do not divide
+   neatly, which with hand-made blocks they never do. */
+const PATTERNS = {
+  scattered: {
+    label: 'Scattered',
+    // Nothing geometric to aim at; handled by its own routine below.
+    ideal: null
+  },
+  stripes: {
+    label: 'Stripes',
+    ideal: (r, c, rows, cols, types) => types[r % types.length]
+  },
+  diagonals: {
+    label: 'Diagonals',
+    ideal: (r, c, rows, cols, types) => types[(r + c) % types.length]
+  },
+  checkerboard: {
+    label: 'Checkerboard',
+    ideal: (r, c, rows, cols, types) => {
+      // Split the patterns into two sets and alternate between them, so this
+      // still reads as a checkerboard with more than two kinds of block.
+      const half = Math.ceil(types.length / 2);
+      const group = (r + c) % 2 === 0 ? types.slice(0, half) : types.slice(half);
+      const from = group.length ? group : types;
+      return from[Math.floor((r + c) / 2) % from.length];
+    }
+  },
+  framed: {
+    label: 'Framed',
+    ideal: (r, c, rows, cols, types) => {
+      const onEdge = r === 0 || c === 0 || r === rows-1 || c === cols-1;
+      if(onEdge) return types[0];
+      const inner = types.slice(1);
+      if(!inner.length) return types[0];
+      return inner[(r + c) % inner.length];
+    }
+  },
+  rings: {
+    label: 'Rings',
+    ideal: (r, c, rows, cols, types) => {
+      const ring = Math.min(r, c, rows-1-r, cols-1-c);
+      return types[ring % types.length];
+    }
+  }
+};
+
+function countConflicts(grid, rows, cols){
+  let conflicts = 0;
+  for(let cell=0; cell<grid.length; cell++){
+    const r = Math.floor(cell/cols), c = cell % cols;
+    if(grid[cell] === null) continue;
+    if(c>0 && grid[cell] === grid[cell-1]) conflicts++;
+    if(r>0 && grid[cell] === grid[cell-cols]) conflicts++;
+  }
+  return conflicts;
+}
+
+/* Lay out to a geometric ideal, limited by what she actually has.
+   Pass one gives each square its ideal block while that block lasts; pass two
+   fills whatever is still empty, preferring something that does not match its
+   neighbours so the gaps do not read as mistakes. */
+function layoutToIdeal(rows, cols, blockDefs, ideal){
+  const capacity = rows * cols;
+  const stock = {};
+  blockDefs.forEach(b => { stock[b.id] = b.qty; });
+
+  // The framed style leans on types[0] for the whole border, so lead with
+  // whichever block she has most of.
+  const types = blockDefs.slice().sort((a,b) => b.qty - a.qty).map(b => b.id);
+
+  const grid = new Array(capacity).fill(null);
+  let followed = 0;
+
+  for(let cell=0; cell<capacity; cell++){
+    const r = Math.floor(cell/cols), c = cell % cols;
+    const want = ideal(r, c, rows, cols, types);
+    if(stock[want] > 0){ stock[want]--; grid[cell] = want; followed++; }
+  }
+
+  for(let cell=0; cell<capacity; cell++){
+    if(grid[cell] !== null) continue;
+    const r = Math.floor(cell/cols), c = cell % cols;
+    const near = [
+      c>0 ? grid[cell-1] : null,
+      c<cols-1 ? grid[cell+1] : null,
+      r>0 ? grid[cell-cols] : null,
+      r<rows-1 ? grid[cell+cols] : null
+    ];
+    let pick = types.find(t => stock[t] > 0 && !near.includes(t));
+    if(!pick) pick = types.find(t => stock[t] > 0);
+    if(!pick) continue;
+    stock[pick]--; grid[cell] = pick;
+  }
+
+  const leftover = Object.keys(stock).reduce((sum,id) => sum + stock[id], 0);
+  const used = grid.filter(x => x !== null).length;
+  return { grid, conflicts: countConflicts(grid, rows, cols), leftover, capacity, used, followed };
+}
+
 function generateLayout(rows, cols, blockDefs){
   const capacity = rows * cols;
   let pool = [];
@@ -928,11 +1057,18 @@ generateBtn.addEventListener('click', () => {
     alert('Rows and columns need to be at least 1.');
     return;
   }
-  const result = generateLayout(rows, cols, blocks);
+  const style = patternSelect.value;
+  const pattern = PATTERNS[style] || PATTERNS.scattered;
+  const result = pattern.ideal
+    ? layoutToIdeal(rows, cols, blocks, pattern.ideal)
+    : generateLayout(rows, cols, blocks);
+  result.style = style;
   lastResult = result;
   renderResult(result, rows, cols);
   saveState();
 });
+
+patternSelect.addEventListener('change', saveState);
 
 function renderResult(result, rows, cols, scroll){
   const byId = {};
@@ -967,10 +1103,24 @@ function renderResult(result, rows, cols, scroll){
   if(result.leftover > 0){
     note += `${result.leftover} block${result.leftover===1?'':'s'} didn't fit in this grid size and weren't used. `;
   }
-  if(result.conflicts > 0){
-    note += `Couldn't fully avoid matching blocks touching, ${result.conflicts} pair${result.conflicts===1?'':'s'} of the same block ended up next to each other because of the quantities on hand.`;
-  } else if(!note){
-    note = 'No two matching blocks end up touching.';
+
+  const style = result.style || 'scattered';
+  if(style === 'scattered'){
+    if(result.conflicts > 0){
+      note += `Couldn't fully avoid matching blocks touching, ${result.conflicts} pair${result.conflicts===1?'':'s'} of the same block ended up next to each other because of the quantities on hand.`;
+    } else if(!note){
+      note = 'No two matching blocks end up touching.';
+    }
+  } else {
+    /* In every other style, matching blocks touching is the point, so counting
+       them as conflicts would be nonsense. What matters is how much of the
+       pattern her quantities could actually cover. */
+    const short = result.used - result.followed;
+    if(short > 0){
+      note += `${result.followed} of ${result.used} squares follow the ${PATTERNS[style].label.toLowerCase()} pattern. The other ${short} were filled in with what was left over.`;
+    } else if(!note){
+      note = `Every square follows the ${PATTERNS[style].label.toLowerCase()} pattern.`;
+    }
   }
   resultNote.textContent = note;
   resultCard.style.display = 'block';

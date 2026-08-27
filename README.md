@@ -58,6 +58,17 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Pattern styles.** Six layouts to choose from: Scattered (the original, no
+  two of the same touching), Stripes, Diagonals, Checkerboard, Framed and
+  Rings. Each of the five geometric styles is expressed as an *ideal* - given a
+  row and column it says which block it would like there - and a single fitting
+  routine reconciles that with her actual quantities: it places what it can,
+  then fills the gaps with what is left, preferring a block that does not match
+  its neighbours. Hand-made blocks never divide neatly, so a style that
+  demanded exact counts would be useless. The note under the grid reports how
+  much of the pattern the stock covered; counting "conflicts" only makes sense
+  for Scattered, since in every other style matching blocks touching is the
+  entire point.
 - **Icon.** Nine squares in the app's own palette on ink navy, arranged so no
   two of the same colour touch - the rule the app exists to apply. Replaces the
   default Capacitor logo. Legacy PNGs at all five densities plus the adaptive
