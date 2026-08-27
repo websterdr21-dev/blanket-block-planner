@@ -104,6 +104,8 @@
   button:disabled{opacity:0.45;cursor:not-allowed;}
   button.link{background:none;color:var(--berry-dark);text-decoration:underline;padding:12px 10px;font-weight:500;min-height:auto;font-size:0.95rem;}
   #addAllBtn, #generateBtn{width:100%;}
+  .photo-sources{display:flex;gap:10px;flex-wrap:wrap;}
+  .photo-sources button{flex:1;min-width:140px;}
 
   .pending-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
   .pending-item{
@@ -167,8 +169,15 @@
     <h2>Add block patterns</h2>
     <div class="field-row">
       <div class="field">
-        <label for="blockPhotos">Photos (pick as many as you like)</label>
-        <input type="file" id="blockPhotos" accept="image/*" multiple>
+        <label>Add your block photos</label>
+        <div class="photo-sources">
+          <button type="button" class="secondary" id="takePhotoBtn">Take a photo</button>
+          <button type="button" class="secondary" id="pickPhotosBtn">Choose from gallery</button>
+        </div>
+        <!-- capture="environment" sends Android straight to the camera app;
+             the other input opens the picker and takes as many as she likes. -->
+        <input type="file" id="blockCamera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="blockPhotos" accept="image/*" multiple hidden>
       </div>
     </div>
 
@@ -218,6 +227,9 @@ let blocks = []; // {id, name, qty, photoDataUrl, displayUrl}
 let userEditedGrid = false;
 
 const blockPhotosInput = document.getElementById('blockPhotos');
+const blockCameraInput = document.getElementById('blockCamera');
+const takePhotoBtn = document.getElementById('takePhotoBtn');
+const pickPhotosBtn = document.getElementById('pickPhotosBtn');
 const pendingListEl = document.getElementById('pendingList');
 const addAllBtn = document.getElementById('addAllBtn');
 const bulkQtyRow = document.getElementById('bulkQtyRow');
@@ -255,7 +267,8 @@ function guessNameFromFile(file){
    If the wasm cannot load - e.g. index.html opened straight off the filesystem,
    where ES module imports are blocked - every block quietly keeps its photo. */
 const DEG = Math.PI / 180;
-const TRACE_MAX_PX = 320;          // longest side fed to the tracer
+const TRACE_MAX_PX = 160;          // longest side fed to the tracer
+const TRACE_BLUR_PX = 1;           // softens yarn texture so it is not traced as detail
 const vt = { mod: null, loading: null };
 
 function loadTracer(){
@@ -276,16 +289,22 @@ function loadImage(src){
   });
 }
 
-/* Settings ported from the validated Python vtracer run. Two conversions matter:
-   vtracer-wasm takes corner/splice thresholds in radians where the CLI takes
-   degrees, and it passes colorPrecision straight through as is_same_color_a
-   where the CLI sends 8 - color_precision, so Python's 5 becomes 3 here. */
+/* Settings ported from the validated Python vtracer run, then re-tuned against
+   a real crochet photo. Two conversions matter: vtracer-wasm takes corner and
+   splice thresholds in radians where the CLI takes degrees, and it passes
+   colorPrecision straight through as is_same_color_a where the CLI sends
+   8 - color_precision, so higher here means more colours merged.
+
+   On real yarn the Python settings traced the stitch texture itself - 300-odd
+   paths of mottling. Tracing a smaller, slightly blurred copy throws that
+   texture away and keeps the shapes; the result is vector, so it still scales
+   up cleanly. colorPrecision above 2 merged the petals into the border. */
 function traceConfig(w, h){
   return {
     binary: false,
     mode: 'spline',
     hierarchical: 'stacked',
-    colorPrecision: 3,
+    colorPrecision: 2,
     layerDifference: 16,
     filterSpeckle: Math.max(8, Math.round(w * h / 2560)),
     cornerThreshold: 140 * DEG,
@@ -307,6 +326,7 @@ async function vectorize(dataUrl){
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.filter = 'blur(' + TRACE_BLUR_PX + 'px)';
     ctx.drawImage(img, 0, 0, w, h);
     const px = ctx.getImageData(0, 0, w, h);
     const svg = vt.mod.to_svg(new Uint8Array(px.data.buffer), w, h, traceConfig(w, h));
@@ -331,9 +351,9 @@ function queueTrace(job){
   return traceQueue;
 }
 
-blockPhotosInput.addEventListener('change', () => {
-  const files = Array.from(blockPhotosInput.files);
-  blockPhotosInput.value = '';
+function addPhotoFiles(input){
+  const files = Array.from(input.files);
+  input.value = '';
   files.forEach(file => {
     readAsDataUrl(file, dataUrl => {
       const item = {
@@ -354,7 +374,12 @@ blockPhotosInput.addEventListener('change', () => {
       });
     });
   });
-});
+}
+
+blockPhotosInput.addEventListener('change', () => addPhotoFiles(blockPhotosInput));
+blockCameraInput.addEventListener('change', () => addPhotoFiles(blockCameraInput));
+takePhotoBtn.addEventListener('click', () => blockCameraInput.click());
+pickPhotosBtn.addEventListener('click', () => blockPhotosInput.click());
 
 /* Patch the single row in place: a full re-render here would wipe out whatever
    she happens to be typing into a name field at the time. */
