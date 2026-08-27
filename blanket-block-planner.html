@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blanket Block Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy:#1E2233;
+    --ink-navy-soft:#272C42;
+    --wool-cream:#EFE7D8;
+    --wool-cream-dim:#E2D8C4;
+    --berry:#8C3F5D;
+    --berry-dark:#6E2F49;
+    --marigold:#D69A3E;
+    --charcoal:#2A2620;
+    --sage:#7C8B7A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink-navy);
+    color:var(--wool-cream);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:32px 20px 80px;}
+  header{text-align:center;margin-bottom:8px;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:2.1rem;
+    margin:0;
+    letter-spacing:0.01em;
+    color:var(--wool-cream);
+  }
+  .tagline{
+    font-family:'Caveat',cursive;
+    font-size:1.3rem;
+    color:var(--marigold);
+    margin:4px 0 0;
+  }
+  .stitch-divider{
+    height:16px;
+    margin:22px 0 26px;
+    background-image:radial-gradient(circle at 8px 0, transparent 6px, var(--marigold) 7px, transparent 8px);
+    background-size:16px 16px;
+    background-repeat:repeat-x;
+    background-position:center;
+    opacity:0.85;
+  }
+  .card{
+    background:var(--wool-cream);
+    color:var(--charcoal);
+    border-radius:14px;
+    padding:22px 20px;
+    margin-bottom:22px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+  }
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:1.15rem;
+    margin:0 0 14px;
+    color:var(--berry-dark);
+  }
+  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .field{flex:1;min-width:130px;display:flex;flex-direction:column;gap:6px;}
+  label{font-size:0.82rem;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:0.04em;}
+  input[type="text"],input[type="number"]{
+    padding:13px 14px;
+    border-radius:10px;
+    border:1.5px solid var(--wool-cream-dim);
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:1rem;
+    color:var(--charcoal);
+    min-height:48px;
+  }
+  input[type="file"]{
+    font-size:0.95rem;
+    padding:10px 0;
+    min-height:48px;
+  }
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    border:none;
+    border-radius:10px;
+    padding:14px 22px;
+    cursor:pointer;
+    font-size:1rem;
+    min-height:48px;
+    transition:transform 0.1s ease, opacity 0.1s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button.primary{background:var(--berry);color:#fff;}
+  button.primary:hover{background:var(--berry-dark);}
+  button.secondary{background:transparent;color:var(--berry-dark);border:1.5px solid var(--berry-dark);}
+  button.secondary:hover{background:rgba(140,63,93,0.08);}
+  button:disabled{opacity:0.45;cursor:not-allowed;}
+  button.link{background:none;color:var(--berry-dark);text-decoration:underline;padding:12px 10px;font-weight:500;min-height:auto;font-size:0.95rem;}
+  #addAllBtn, #generateBtn{width:100%;}
+
+  .pending-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .pending-item{
+    display:flex;align-items:center;gap:12px;
+    background:#fff;border-radius:12px;padding:12px;
+    border:1.5px dashed var(--wool-cream-dim);
+  }
+  .pending-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+  .pending-item input[type="text"]{flex:1;min-width:100px;}
+  .pending-item input[type="number"]{width:76px;}
+  .block-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+  .block-item{
+    display:flex;align-items:center;gap:14px;
+    background:#fff;border-radius:12px;padding:10px 12px;
+  }
+  .block-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--wool-cream-dim);}
+  .block-item .info{flex:1;}
+  .block-item .name{font-weight:600;font-size:0.98rem;}
+  .block-item .qty{font-size:0.85rem;color:var(--sage);}
+  .empty-note{font-size:0.9rem;color:var(--sage);font-style:italic;}
+
+  .grid-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  .grid-controls .field{max-width:110px;min-width:90px;}
+  .totals{font-size:0.85rem;color:var(--sage);margin-top:10px;}
+  .totals strong{color:var(--charcoal);}
+  .warn{color:var(--berry-dark);font-weight:600;}
+
+  .grid-wrapper{overflow-x:auto;padding:6px 2px 12px;}
+  .blanket-grid{
+    display:grid;
+    grid-template-columns:repeat(var(--cols), 46px);
+    grid-auto-rows:46px;
+    gap:4px;
+    width:max-content;
+    margin:0 auto;
+  }
+  .blanket-grid .cell{
+    border-radius:5px;
+    overflow:hidden;
+    border:1px solid var(--wool-cream-dim);
+    background:var(--wool-cream-dim);
+  }
+  .blanket-grid .cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:0.82rem;}
+  .legend-item img{width:22px;height:22px;border-radius:4px;object-fit:cover;border:1px solid var(--wool-cream-dim);}
+  .result-note{font-size:0.9rem;margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Blanket Block Planner</h1>
+    <p class="tagline">upload your blocks, tell it how many, let it figure out the order</p>
+  </header>
+  <div class="stitch-divider"></div>
+
+  <div class="card">
+    <h2>Add block patterns</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="blockPhotos">Photos (pick as many as you like)</label>
+        <input type="file" id="blockPhotos" accept="image/*" multiple>
+      </div>
+    </div>
+
+    <div class="field-row" id="bulkQtyRow" style="display:none;align-items:flex-end;margin-top:10px;">
+      <div class="field" style="max-width:110px;min-width:90px;">
+        <label for="bulkQtyInput">Set qty for all</label>
+        <input type="number" id="bulkQtyInput" min="1" value="1">
+      </div>
+      <button class="secondary" id="applyQtyBtn">Apply to all</button>
+    </div>
+    <div class="pending-list" id="pendingList"></div>
+    <button class="primary" id="addAllBtn" style="display:none;margin-top:6px;">Add to blanket</button>
+
+    <div class="block-list" id="blockList"></div>
+    <p class="empty-note" id="emptyNote">No blocks added yet. Choose photos above to get started.</p>
+  </div>
+
+  <div class="card">
+    <h2>Blanket size</h2>
+    <div class="grid-controls">
+      <div class="field">
+        <label for="rowsInput">Rows</label>
+        <input type="number" id="rowsInput" min="1" value="4">
+      </div>
+      <div class="field">
+        <label for="colsInput">Columns</label>
+        <input type="number" id="colsInput" min="1" value="4">
+      </div>
+      <button class="secondary" id="suggestBtn">Auto-suggest size</button>
+    </div>
+    <p class="totals" id="totalsNote"></p>
+    <button class="primary" id="generateBtn" style="margin-top:14px;">Generate layout</button>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>Your blanket layout</h2>
+    <div class="grid-wrapper">
+      <div class="blanket-grid" id="resultGrid"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <p class="result-note" id="resultNote"></p>
+  </div>
+</div>
+
+<script>
+let blocks = []; // {id, name, qty, photoDataUrl}
+let userEditedGrid = false;
+
+const blockPhotosInput = document.getElementById('blockPhotos');
+const pendingListEl = document.getElementById('pendingList');
+const addAllBtn = document.getElementById('addAllBtn');
+const bulkQtyRow = document.getElementById('bulkQtyRow');
+const bulkQtyInput = document.getElementById('bulkQtyInput');
+const applyQtyBtn = document.getElementById('applyQtyBtn');
+const blockListEl = document.getElementById('blockList');
+let pending = []; // {tempId, dataUrl, name, qty}
+const emptyNote = document.getElementById('emptyNote');
+const rowsInput = document.getElementById('rowsInput');
+const colsInput = document.getElementById('colsInput');
+const suggestBtn = document.getElementById('suggestBtn');
+const totalsNote = document.getElementById('totalsNote');
+const generateBtn = document.getElementById('generateBtn');
+const resultCard = document.getElementById('resultCard');
+const resultGrid = document.getElementById('resultGrid');
+const legendEl = document.getElementById('legend');
+const resultNote = document.getElementById('resultNote');
+
+rowsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); });
+colsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); });
+
+function readAsDataUrl(file, cb){
+  const reader = new FileReader();
+  reader.onload = e => cb(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function guessNameFromFile(file){
+  const base = file.name.replace(/\.[^/.]+$/, '');
+  return base.replace(/[_-]+/g, ' ').trim();
+}
+
+blockPhotosInput.addEventListener('change', () => {
+  const files = Array.from(blockPhotosInput.files);
+  blockPhotosInput.value = '';
+  let remaining = files.length;
+  files.forEach(file => {
+    readAsDataUrl(file, dataUrl => {
+      pending.push({
+        tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
+        dataUrl,
+        name: guessNameFromFile(file),
+        qty: 1
+      });
+      remaining--;
+      if(remaining === 0) renderPendingList();
+    });
+  });
+});
+
+function renderPendingList(){
+  pendingListEl.innerHTML = '';
+  addAllBtn.style.display = pending.length ? 'block' : 'none';
+  bulkQtyRow.style.display = pending.length ? 'flex' : 'none';
+  pending.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'pending-item';
+    row.innerHTML = `
+      <img src="${p.dataUrl}" alt="">
+      <input type="text" value="${escapeHtml(p.name)}" placeholder="Name this block">
+      <input type="number" min="1" value="${p.qty}">
+      <button class="link" title="Remove">Remove</button>
+    `;
+    const [nameEl, qtyEl] = row.querySelectorAll('input');
+    nameEl.addEventListener('input', () => { p.name = nameEl.value; });
+    qtyEl.addEventListener('input', () => { p.qty = parseInt(qtyEl.value,10) || 1; });
+    row.querySelector('button').addEventListener('click', () => {
+      pending = pending.filter(x => x.tempId !== p.tempId);
+      renderPendingList();
+    });
+    pendingListEl.appendChild(row);
+  });
+}
+
+applyQtyBtn.addEventListener('click', () => {
+  const val = parseInt(bulkQtyInput.value, 10);
+  if(!val || val < 1) return;
+  pending.forEach(p => { p.qty = val; });
+  renderPendingList();
+});
+
+addAllBtn.addEventListener('click', () => {
+  if(pending.some(p => !p.name.trim() || !p.qty || p.qty < 1)){
+    alert('Every photo needs a name and a quantity of at least 1 before adding.');
+    return;
+  }
+  pending.forEach(p => {
+    blocks.push({
+      id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
+      name: p.name.trim(), qty: p.qty, photoDataUrl: p.dataUrl
+    });
+  });
+  pending = [];
+  renderPendingList();
+  renderBlockList();
+  if(!userEditedGrid) applySuggestion();
+  updateTotals();
+});
+
+function renderBlockList(){
+  blockListEl.innerHTML = '';
+  emptyNote.style.display = blocks.length ? 'none' : 'block';
+  blocks.forEach(b => {
+    const row = document.createElement('div');
+    row.className = 'block-item';
+    row.innerHTML = `
+      <img src="${b.photoDataUrl}" alt="">
+        <div class="name">${escapeHtml(b.name)}</div>
+        <div class="qty">${b.qty} block${b.qty===1?'':'s'}</div>
+      </div>
+      <button class="link" data-id="${b.id}">Remove</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => {
+      blocks = blocks.filter(x => x.id !== b.id);
+      renderBlockList();
+      if(!userEditedGrid) applySuggestion();
+      updateTotals();
+    });
+    blockListEl.appendChild(row);
+  });
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function totalBlocks(){
+  return blocks.reduce((sum,b) => sum + b.qty, 0);
+}
+
+function suggestGrid(total){
+  if(total <= 0) return {rows:4, cols:4};
+  let r = Math.max(1, Math.round(Math.sqrt(total)));
+  let c = Math.max(1, Math.round(total / r));
+  return {rows:r, cols:c};
+}
+
+function applySuggestion(){
+  const s = suggestGrid(totalBlocks());
+  rowsInput.value = s.rows;
+  colsInput.value = s.cols;
+}
+
+suggestBtn.addEventListener('click', () => {
+  userEditedGrid = false;
+  applySuggestion();
+  updateTotals();
+});
+
+function updateTotals(){
+  const total = totalBlocks();
+  const rows = parseInt(rowsInput.value,10) || 0;
+  const cols = parseInt(colsInput.value,10) || 0;
+  const capacity = rows * cols;
+  let msg = `<strong>${total}</strong> block${total===1?'':'s'} added &middot; grid holds <strong>${capacity}</strong>.`;
+  if(capacity < total){
+    msg += ` <span class="warn">${total - capacity} block${total-capacity===1?'':'s'} will be left over.</span>`;
+  } else if(capacity > total){
+    msg += ` <span class="warn">${capacity - total} empty cell${capacity-total===1?'':'s'} left, add more blocks or shrink the grid.</span>`;
+  }
+  totalsNote.innerHTML = msg;
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function generateLayout(rows, cols, blockDefs){
+  const capacity = rows * cols;
+  let pool = [];
+  blockDefs.forEach(b => { for(let i=0;i<b.qty;i++) pool.push(b.id); });
+
+  let leftover = 0;
+  if(pool.length > capacity){
+    leftover = pool.length - capacity;
+    pool = shuffle(pool.slice()).slice(0, capacity);
+  }
+
+  let best = null, bestConflicts = Infinity;
+  const attempts = 200;
+  for(let a=0; a<attempts; a++){
+    const remaining = shuffle(pool.slice());
+    const grid = new Array(capacity).fill(null);
+    for(let cell=0; cell<capacity; cell++){
+      const r = Math.floor(cell/cols), c = cell % cols;
+      const leftId = c>0 ? grid[cell-1] : null;
+      const topId = r>0 ? grid[cell-cols] : null;
+      let found = -1;
+      for(let k=0;k<remaining.length;k++){
+        if(remaining[k] !== leftId && remaining[k] !== topId){ found = k; break; }
+      }
+      if(found === -1) found = remaining.length ? 0 : -1;
+      if(found === -1){ grid[cell] = null; continue; }
+      grid[cell] = remaining[found];
+      remaining.splice(found,1);
+    }
+    let conflicts = 0;
+    for(let cell=0; cell<capacity; cell++){
+      const r = Math.floor(cell/cols), c = cell % cols;
+      if(grid[cell] === null) continue;
+      if(c>0 && grid[cell] === grid[cell-1]) conflicts++;
+      if(r>0 && grid[cell] === grid[cell-cols]) conflicts++;
+    }
+    if(conflicts < bestConflicts){ bestConflicts = conflicts; best = grid; }
+    if(conflicts === 0) break;
+  }
+  return { grid: best, conflicts: bestConflicts, leftover, capacity, used: capacity - best.filter(x=>x===null).length };
+}
+
+generateBtn.addEventListener('click', () => {
+  if(!blocks.length){
+    alert('Add at least one block pattern first.');
+    return;
+  }
+  const rows = parseInt(rowsInput.value,10);
+  const cols = parseInt(colsInput.value,10);
+  if(!rows || !cols || rows<1 || cols<1){
+    alert('Rows and columns need to be at least 1.');
+    return;
+  }
+  const result = generateLayout(rows, cols, blocks);
+  renderResult(result, rows, cols);
+});
+
+function renderResult(result, rows, cols){
+  const byId = {};
+  blocks.forEach(b => byId[b.id] = b);
+
+  resultGrid.style.setProperty('--cols', cols);
+  resultGrid.innerHTML = '';
+  result.grid.forEach(id => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if(id){
+      const img = document.createElement('img');
+      img.src = byId[id].photoDataUrl;
+      img.title = byId[id].name;
+      cell.appendChild(img);
+    }
+    resultGrid.appendChild(cell);
+  });
+
+  const usedCounts = {};
+  result.grid.forEach(id => { if(id) usedCounts[id] = (usedCounts[id]||0) + 1; });
+  legendEl.innerHTML = '';
+  blocks.forEach(b => {
+    const used = usedCounts[b.id] || 0;
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<img src="${b.photoDataUrl}" alt=""><span>${escapeHtml(b.name)}: ${used}/${b.qty}</span>`;
+    legendEl.appendChild(item);
+  });
+
+  let note = '';
+  if(result.leftover > 0){
+    note += `${result.leftover} block${result.leftover===1?'':'s'} didn't fit in this grid size and weren't used. `;
+  }
+  if(result.conflicts > 0){
+    note += `Couldn't fully avoid matching blocks touching, ${result.conflicts} pair${result.conflicts===1?'':'s'} of the same block ended up next to each other because of the quantities on hand.`;
+  } else if(!note){
+    note = 'No two matching blocks end up touching.';
+  }
+  resultNote.textContent = note;
+  resultCard.style.display = 'block';
+  resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+renderBlockList();
+updateTotals();
+</script>
+</body>
+</html>

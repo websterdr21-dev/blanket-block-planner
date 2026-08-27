@@ -1,0 +1,33 @@
+# deps
+node_modules/
+
+# Android build output
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+android/capacitor-cordova-android-plugins/
+build/
+*.apk
+*.aab
+
+# signing keys - NEVER commit
+*.keystore
+*.jks
+keystore.properties
+key.properties
+*.p12
+*.pepk
+release-signing.properties
+
+# env / secrets
+.env
+.env.*
+
+# editor / os
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
