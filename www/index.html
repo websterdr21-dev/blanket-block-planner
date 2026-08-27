@@ -193,6 +193,8 @@
 
     <div class="block-list" id="blockList"></div>
     <p class="empty-note" id="emptyNote">No blocks added yet. Choose photos above to get started.</p>
+    <p class="empty-note warn" id="saveWarn" style="display:none;">There are too many blocks to save. Your work will be lost when the app closes, so screenshot a layout you want to keep.</p>
+    <button class="link" id="clearAllBtn" style="display:none;">Start a new blanket</button>
   </div>
 
   <div class="card">
@@ -225,6 +227,7 @@
 <script>
 let blocks = []; // {id, name, qty, photoDataUrl, displayUrl}
 let userEditedGrid = false;
+let lastResult = null;
 
 const blockPhotosInput = document.getElementById('blockPhotos');
 const blockCameraInput = document.getElementById('blockCamera');
@@ -247,9 +250,74 @@ const resultCard = document.getElementById('resultCard');
 const resultGrid = document.getElementById('resultGrid');
 const legendEl = document.getElementById('legend');
 const resultNote = document.getElementById('resultNote');
+const clearAllBtn = document.getElementById('clearAllBtn');
+const saveWarn = document.getElementById('saveWarn');
 
-rowsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); });
-colsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); });
+/* --- Remembering her work ---------------------------------------------------
+   Android kills backgrounded apps whenever it wants the memory, so without
+   this she loses a morning of photographing to one phone call.
+
+   Only the traced SVG is kept, never the original photo: a phone photo is
+   ~430KB as a data URL and a dozen of them would blow the ~5MB localStorage
+   budget on their own, while the SVGs are ~30-60KB. On the way back in the
+   SVG stands in for the photo too, which is what the app draws anyway. */
+const SAVE_KEY = 'blanket-block-planner/v1';
+
+function saveState(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 1,
+      blocks: blocks.map(b => ({ id:b.id, name:b.name, qty:b.qty, displayUrl:b.displayUrl })),
+      rows: rowsInput.value,
+      cols: colsInput.value,
+      userEditedGrid,
+      result: lastResult
+    }));
+    saveWarn.style.display = 'none';
+  }catch(err){
+    /* Out of quota, or storage blocked entirely. Say so rather than letting
+       her believe it is saved. */
+    console.warn('Could not save.', err);
+    saveWarn.style.display = blocks.length ? 'block' : 'none';
+  }
+}
+
+function loadState(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }
+  catch(err){ console.warn('Could not read saved blocks.', err); return; }
+  if(!saved || saved.v !== 1 || !Array.isArray(saved.blocks) || !saved.blocks.length) return;
+
+  blocks = saved.blocks.map(b => ({
+    id: b.id, name: b.name, qty: b.qty,
+    displayUrl: b.displayUrl,
+    photoDataUrl: b.displayUrl
+  }));
+  if(saved.rows) rowsInput.value = saved.rows;
+  if(saved.cols) colsInput.value = saved.cols;
+  userEditedGrid = !!saved.userEditedGrid;
+
+  if(saved.result && Array.isArray(saved.result.grid)){
+    lastResult = saved.result;
+    // Restore the plan she was looking at, without yanking the page down to it.
+    renderResult(saved.result, parseInt(saved.rows,10) || 1, parseInt(saved.cols,10) || 1, false);
+  }
+}
+
+rowsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
+colsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
+
+clearAllBtn.addEventListener('click', () => {
+  if(!confirm('Start a new blanket? This clears the blocks you have added.')) return;
+  blocks = [];
+  lastResult = null;
+  userEditedGrid = false;
+  resultCard.style.display = 'none';
+  try{ localStorage.removeItem(SAVE_KEY); }catch(err){ /* nothing to clean up */ }
+  renderBlockList();
+  applySuggestion();
+  updateTotals();
+});
 
 function readAsDataUrl(file, cb){
   const reader = new FileReader();
@@ -727,11 +795,13 @@ addAllBtn.addEventListener('click', () => {
   renderBlockList();
   if(!userEditedGrid) applySuggestion();
   updateTotals();
+  saveState();
 });
 
 function renderBlockList(){
   blockListEl.innerHTML = '';
   emptyNote.style.display = blocks.length ? 'none' : 'block';
+  clearAllBtn.style.display = blocks.length ? 'block' : 'none';
   blocks.forEach(b => {
     const row = document.createElement('div');
     row.className = 'block-item';
@@ -745,9 +815,11 @@ function renderBlockList(){
     `;
     row.querySelector('button').addEventListener('click', () => {
       blocks = blocks.filter(x => x.id !== b.id);
+      if(!blocks.length){ lastResult = null; resultCard.style.display = 'none'; }
       renderBlockList();
       if(!userEditedGrid) applySuggestion();
       updateTotals();
+      saveState();
     });
     blockListEl.appendChild(row);
   });
@@ -778,6 +850,7 @@ suggestBtn.addEventListener('click', () => {
   userEditedGrid = false;
   applySuggestion();
   updateTotals();
+  saveState();
 });
 
 function updateTotals(){
@@ -856,10 +929,12 @@ generateBtn.addEventListener('click', () => {
     return;
   }
   const result = generateLayout(rows, cols, blocks);
+  lastResult = result;
   renderResult(result, rows, cols);
+  saveState();
 });
 
-function renderResult(result, rows, cols){
+function renderResult(result, rows, cols, scroll){
   const byId = {};
   blocks.forEach(b => byId[b.id] = b);
 
@@ -899,9 +974,10 @@ function renderResult(result, rows, cols){
   }
   resultNote.textContent = note;
   resultCard.style.display = 'block';
-  resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+  if(scroll !== false) resultCard.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+loadState();
 renderBlockList();
 updateTotals();
 

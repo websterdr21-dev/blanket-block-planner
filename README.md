@@ -58,6 +58,15 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Saved work.** Blocks, the grid size and the generated layout are kept in
+  `localStorage`, so Android killing the app in the background does not cost a
+  morning of photographing. Only the traced SVG is stored, never the original
+  photo: a phone photo is ~430 KB as a data URL and a dozen would blow the ~5 MB
+  budget alone, while the SVGs are ~30-60 KB - four blocks plus their layout
+  come to ~164 KB. On the way back in the SVG stands in for the photo, which is
+  what the app draws anyway. If the write fails, or storage is blocked, the app
+  says so rather than letting her believe it saved. "Start a new blanket"
+  clears it.
 - **Photos.** Two sources: *Take a photo* uses `capture="environment"`, which
   Capacitor sends straight to the Android camera app, and *Choose from gallery*
   opens the picker for as many photos as she likes. Neither needs a runtime
