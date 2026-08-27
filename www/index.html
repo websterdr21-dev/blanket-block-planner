@@ -267,8 +267,9 @@ function guessNameFromFile(file){
    If the wasm cannot load - e.g. index.html opened straight off the filesystem,
    where ES module imports are blocked - every block quietly keeps its photo. */
 const DEG = Math.PI / 180;
-const TRACE_MAX_PX = 160;          // longest side fed to the tracer
-const TRACE_BLUR_PX = 1;           // softens yarn texture so it is not traced as detail
+const TRACE_MAX_PX = 256;          // longest side fed to the pipeline
+const TRACE_COLOURS = 6;           // flat palette size
+const KUWAHARA_RADIUS = 4;
 const vt = { mod: null, loading: null };
 
 function loadTracer(){
@@ -289,16 +290,118 @@ function loadImage(src){
   });
 }
 
+/* --- Flattening ------------------------------------------------------------
+   Tracing a photo directly follows the yarn texture, which is why a raw trace
+   came out as hundreds of paths of mottling rather than a clean illustration.
+   Two stages run before the tracer, and between them they do the work:
+
+   1. Kuwahara: for each pixel, look at four overlapping quadrants and take the
+      mean of whichever is flattest. Inside a region that smooths the texture
+      away; at a boundary the quadrant that does not straddle the edge wins, so
+      edges stay sharp instead of blurring across.
+   2. k-means in CIELab with luminance weighted down, which is what keeps the
+      palette on the yarn colours. In RGB, a shadowed navy and a lit navy are
+      far apart and burn two of the six slots, leaving the actual colours to
+      share the rest; in Lab they differ mostly in L, so weighting L down
+      collapses them into one. */
+
+function kuwahara(src, w, h, r){
+  const out = new ImageData(w, h), a = src.data, o = out.data;
+  const quads = [[-r,0,-r,0],[0,r,-r,0],[-r,0,0,r],[0,r,0,r]];
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let bestVar=Infinity, bR=0, bG=0, bB=0;
+    for(const [x0,x1,y0,y1] of quads){
+      let sr=0,sg=0,sb=0,sl=0,sl2=0,n=0;
+      for(let dy=y0;dy<=y1;dy++){
+        const yy=y+dy; if(yy<0||yy>=h) continue;
+        for(let dx=x0;dx<=x1;dx++){
+          const xx=x+dx; if(xx<0||xx>=w) continue;
+          const i=(yy*w+xx)*4, R=a[i], G=a[i+1], B=a[i+2];
+          const l=0.299*R+0.587*G+0.114*B;
+          sr+=R; sg+=G; sb+=B; sl+=l; sl2+=l*l; n++;
+        }
+      }
+      if(!n) continue;
+      const v = sl2/n - (sl/n)*(sl/n);
+      if(v < bestVar){ bestVar=v; bR=sr/n; bG=sg/n; bB=sb/n; }
+    }
+    const i=(y*w+x)*4; o[i]=bR; o[i+1]=bG; o[i+2]=bB; o[i+3]=255;
+  }
+  return out;
+}
+
+function rgbToLab(R, G, B){
+  const lin = v => { v/=255; return v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  const r=lin(R), g=lin(G), b=lin(B);
+  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const X = f((r*0.4124 + g*0.3576 + b*0.1805) / 0.95047);
+  const Y = f( r*0.2126 + g*0.7152 + b*0.0722);
+  const Z = f((r*0.0193 + g*0.1192 + b*0.9505) / 1.08883);
+  return [116*Y - 16, 500*(X - Y), 200*(Y - Z)];
+}
+
+function flatten(src, w, h, k){
+  const a = src.data, px = w*h, LUMA_WEIGHT = 0.4;
+  const L=new Float32Array(px), A=new Float32Array(px), B=new Float32Array(px);
+  for(let i=0;i<px;i++){
+    const lab = rgbToLab(a[i*4], a[i*4+1], a[i*4+2]);
+    L[i]=lab[0]*LUMA_WEIGHT; A[i]=lab[1]; B[i]=lab[2];
+  }
+  // Seed the centroids spread evenly through the sorted lightness, so the
+  // result does not depend on a random start and is the same on every run.
+  const order = Array.from({length:px}, (_,i)=>i).sort((x,y)=>L[x]-L[y]);
+  let cent = [];
+  for(let c=0;c<k;c++){ const j = order[Math.floor((c+0.5)*px/k)]; cent.push([L[j],A[j],B[j]]); }
+
+  const owner = new Int32Array(px);
+  for(let iter=0; iter<12; iter++){
+    for(let i=0;i<px;i++){
+      let best=0, bd=Infinity;
+      for(let c=0;c<k;c++){
+        const d=(L[i]-cent[c][0])**2 + (A[i]-cent[c][1])**2 + (B[i]-cent[c][2])**2;
+        if(d<bd){ bd=d; best=c; }
+      }
+      owner[i]=best;
+    }
+    const acc = Array.from({length:k}, () => [0,0,0,0]);
+    for(let i=0;i<px;i++){ const c=owner[i]; acc[c][0]+=L[i]; acc[c][1]+=A[i]; acc[c][2]+=B[i]; acc[c][3]++; }
+    for(let c=0;c<k;c++) if(acc[c][3]) cent[c]=[acc[c][0]/acc[c][3], acc[c][1]/acc[c][3], acc[c][2]/acc[c][3]];
+  }
+
+  /* Paint each cluster with its most common colour rather than its average.
+     Averaging a lit pink with a shadowed pink gives a washed-out mauve; the
+     mode is the colour the yarn actually is. */
+  const bins = Array.from({length:k}, () => new Map());
+  for(let i=0;i<px;i++){
+    const c=owner[i], R=a[i*4], G=a[i*4+1], B2=a[i*4+2];
+    const key = ((R>>4)<<8) | ((G>>4)<<4) | (B2>>4);
+    const bin = bins[c].get(key);
+    if(bin){ bin[0]+=R; bin[1]+=G; bin[2]+=B2; bin[3]++; }
+    else bins[c].set(key, [R,G,B2,1]);
+  }
+  const palette = bins.map(m => {
+    let best=null, most=-1;
+    for(const bin of m.values()) if(bin[3]>most){ most=bin[3]; best=bin; }
+    return best ? [best[0]/best[3], best[1]/best[3], best[2]/best[3]] : [0,0,0];
+  });
+
+  const out = new ImageData(w, h), o = out.data;
+  for(let i=0;i<px;i++){
+    const c = palette[owner[i]];
+    o[i*4]=c[0]; o[i*4+1]=c[1]; o[i*4+2]=c[2]; o[i*4+3]=255;
+  }
+  return out;
+}
+
 /* Settings ported from the validated Python vtracer run, then re-tuned against
    a real crochet photo. Two conversions matter: vtracer-wasm takes corner and
    splice thresholds in radians where the CLI takes degrees, and it passes
    colorPrecision straight through as is_same_color_a where the CLI sends
    8 - color_precision, so higher here means more colours merged.
 
-   On real yarn the Python settings traced the stitch texture itself - 300-odd
-   paths of mottling. Tracing a smaller, slightly blurred copy throws that
-   texture away and keeps the shapes; the result is vector, so it still scales
-   up cleanly. colorPrecision above 2 merged the petals into the border. */
+   The tracer now sees an already-flat image, so it only has to follow the
+   region boundaries. On a real photo that is ~50 paths instead of ~585.
+   colorPrecision above 2 merged the petals into the border. */
 function traceConfig(w, h){
   return {
     binary: false,
@@ -326,10 +429,10 @@ async function vectorize(dataUrl){
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.filter = 'blur(' + TRACE_BLUR_PX + 'px)';
     ctx.drawImage(img, 0, 0, w, h);
-    const px = ctx.getImageData(0, 0, w, h);
-    const svg = vt.mod.to_svg(new Uint8Array(px.data.buffer), w, h, traceConfig(w, h));
+    const smoothed = kuwahara(ctx.getImageData(0, 0, w, h), w, h, KUWAHARA_RADIUS);
+    const flat = flatten(smoothed, w, h, TRACE_COLOURS);
+    const svg = vt.mod.to_svg(new Uint8Array(flat.data.buffer), w, h, traceConfig(w, h));
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }catch(err){
     console.warn('Could not trace this photo, keeping the original.', err);

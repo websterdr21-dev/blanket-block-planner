@@ -62,12 +62,29 @@ an older bundle, a fresh install downgrades itself on first launch.
   Capacitor sends straight to the Android camera app, and *Choose from gallery*
   opens the picker for as many photos as she likes. Neither needs a runtime
   permission - the camera app and the system picker handle that themselves.
-- **Vector tracing.** Each uploaded photo is traced on-device to a flat-colour
-  SVG with [vtracer](https://github.com/visioncortex/vtracer), at 160px with a 1px
-  blur so yarn texture is not mistaken for detail. Nothing is uploaded anywhere
-  and no AI is involved. Measured on a real 1528px photo: the SVG is ~4x
-  smaller than the JPEG and a 168-cell grid paints in 86 ms against 352 ms for
-  the photos, without holding 36 MB of decoded bitmaps. If the wasm can't load, blocks fall
-  back to their original photos and everything else still works.
+- **Vector tracing.** Each uploaded photo becomes a flat-colour SVG on-device,
+  in three stages at 256px, ~250-450 ms per photo:
+  1. **Kuwahara filter** - each pixel takes the mean of whichever of four
+     overlapping quadrants is flattest. Inside a region that erases yarn
+     texture; at a boundary the quadrant that avoids the edge wins, so edges
+     stay sharp rather than blurring.
+  2. **k-means in CIELab, luminance weighted to 0.4** - this is what keeps the
+     six palette slots on the yarn colours. In RGB a shadowed navy and a lit
+     navy are far apart and burn two slots; in Lab they differ mostly in L, so
+     weighting L down collapses them. Each cluster is painted with its modal
+     colour, not its mean, because the mean of a lit and a shadowed pink is a
+     washed-out mauve.
+  3. **[vtracer](https://github.com/visioncortex/vtracer)** on the already-flat
+     image, so it only follows region boundaries: ~50 paths instead of ~585.
+
+  Nothing is uploaded anywhere and no AI is involved. Measured on real photos:
+  ~23-43 KB per block against ~320-430 KB for the JPEG, and a 168-cell grid
+  paints in 86 ms against 352 ms, without holding 36 MB of decoded bitmaps.
+  If the wasm can't load, blocks fall back to their original photos and
+  everything else still works.
+
+  Symmetry folding was tried and rejected: a granny square is symmetric under
+  the 8 rotations and reflections of a square, but the blocks are not centred
+  or rotationally aligned in the photos, so folding smeared the motif.
 - **Fonts.** The page pulls Fraunces/Inter/Caveat from Google Fonts, so offline
   it falls back to system fonts. Embedding them would add roughly 200 KB.
