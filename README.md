@@ -58,6 +58,11 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Icon.** Nine squares in the app's own palette on ink navy, arranged so no
+  two of the same colour touch - the rule the app exists to apply. Replaces the
+  default Capacitor logo. Legacy PNGs at all five densities plus the adaptive
+  foreground and a navy adaptive background. Icons are native, so this is one
+  of the few changes that cannot be shipped as a live update.
 - **Saved work.** Blocks, the grid size and the generated layout are kept in
   `localStorage`, so Android killing the app in the background does not cost a
   morning of photographing. Only the traced SVG is stored, never the original
