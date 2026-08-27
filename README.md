@@ -62,29 +62,43 @@ an older bundle, a fresh install downgrades itself on first launch.
   Capacitor sends straight to the Android camera app, and *Choose from gallery*
   opens the picker for as many photos as she likes. Neither needs a runtime
   permission - the camera app and the system picker handle that themselves.
-- **Vector tracing.** Each uploaded photo becomes a flat-colour SVG on-device,
-  in three stages at 256px, ~250-450 ms per photo:
-  1. **Kuwahara filter** - each pixel takes the mean of whichever of four
-     overlapping quadrants is flattest. Inside a region that erases yarn
-     texture; at a boundary the quadrant that avoids the edge wins, so edges
-     stay sharp rather than blurring.
-  2. **k-means in CIELab, luminance weighted to 0.4** - this is what keeps the
-     six palette slots on the yarn colours. In RGB a shadowed navy and a lit
-     navy are far apart and burn two slots; in Lab they differ mostly in L, so
-     weighting L down collapses them. Each cluster is painted with its modal
-     colour, not its mean, because the mean of a lit and a shadowed pink is a
-     washed-out mauve.
-  3. **[vtracer](https://github.com/visioncortex/vtracer)** on the already-flat
-     image, so it only follows region boundaries: ~50 paths instead of ~585.
+- **Vector tracing.** Each uploaded photo becomes a flat-colour SVG on-device
+  in four stages, ~120-260 ms per photo end to end:
+  1. **Find the block.** Photos are taken on a table or on the blanket, so much
+     of the frame is background; left in, it takes palette slots the yarn
+     colours need and gets drawn into the SVG. The background is flooded
+     inwards from the frame edge and whatever the flood never reaches is the
+     block. Two details make it hold up: seeds come only from the dominant
+     edge colours, so a block running off the side of the photo does not seed
+     the flood from its own pixels; and the box comes from row/column density
+     rather than the outermost block pixel, because a loose yarn tail is the
+     same colour as the block and would drag the box to the frame edge. The
+     crop is re-sampled from the full-resolution original, so it costs no
+     detail. Measured: background inside the box fell from 33/35/22/12% of the
+     frame to 7/8/8/6%. Anything suspicious falls back to the whole photo.
+  2. **Kuwahara filter** at 256px - each pixel takes the mean of whichever of
+     four overlapping quadrants is flattest. Inside a region that erases yarn
+     texture; at a boundary the quadrant avoiding the edge wins, so edges stay
+     sharp rather than blurring. Summed-area tables make it O(1) per quadrant.
+  3. **k-means in CIELab, luminance weighted to 0.4**, over the distinct
+     colours rather than all 65k pixels. Weighting L down is what keeps the
+     palette on the yarn: in RGB a lit navy and a shadowed navy are far apart
+     and burn two slots. Seeding is k-means++, not by lightness - seeded by
+     lightness a small sage-green centre surrounded by navy and cream never won
+     a cluster and came out cream. Each cluster is painted with its modal
+     colour, since the mean of a lit and a shadowed pink is a washed-out mauve.
+  4. **[vtracer](https://github.com/visioncortex/vtracer)** on the flat image,
+     so it only follows region boundaries.
 
-  Nothing is uploaded anywhere and no AI is involved. Measured on real photos:
-  ~23-43 KB per block against ~320-430 KB for the JPEG, and a 168-cell grid
-  paints in 86 ms against 352 ms, without holding 36 MB of decoded bitmaps.
-  If the wasm can't load, blocks fall back to their original photos and
-  everything else still works.
+  Nothing is uploaded anywhere and no AI is involved. ~16-50 KB per block
+  against ~320-430 KB for the JPEG, and a 168-cell grid paints in 86 ms against
+  352 ms for photos, without holding 36 MB of decoded bitmaps. If the wasm
+  can't load, blocks fall back to their original photos and the rest still works.
 
-  Symmetry folding was tried and rejected: a granny square is symmetric under
-  the 8 rotations and reflections of a square, but the blocks are not centred
-  or rotationally aligned in the photos, so folding smeared the motif.
+  Two things were tried and rejected. Folding the image over the 8 symmetries
+  of a square would give a perfectly symmetric motif, but the blocks are not
+  centred or rotationally aligned in the photos, so it smeared them into a
+  blob. Raising vtracer's colorPrecision above 2 on the already-flat image
+  collapsed the green centres into the surrounding pink.
 - **Fonts.** The page pulls Fraunces/Inter/Caveat from Google Fonts, so offline
   it falls back to system fonts. Embedding them would add roughly 200 KB.
