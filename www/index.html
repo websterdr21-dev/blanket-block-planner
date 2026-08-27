@@ -110,7 +110,10 @@
     display:flex;align-items:center;gap:12px;
     background:#fff;border-radius:12px;padding:12px;
     border:1.5px dashed var(--wool-cream-dim);
+    flex-wrap:wrap;
   }
+  .pending-item.tracing img{opacity:0.45;}
+  .trace-note{flex-basis:100%;font-size:0.82rem;color:var(--sage);font-style:italic;}
   .pending-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;}
   .pending-item input[type="text"]{flex:1;min-width:100px;}
   .pending-item input[type="number"]{width:76px;}
@@ -131,16 +134,15 @@
   .totals strong{color:var(--charcoal);}
   .warn{color:var(--berry-dark);font-weight:600;}
 
-  .grid-wrapper{overflow-x:auto;padding:6px 2px 12px;}
+  .grid-wrapper{padding:6px 2px 12px;}
   .blanket-grid{
     display:grid;
-    grid-template-columns:repeat(var(--cols), 46px);
-    grid-auto-rows:46px;
-    gap:4px;
-    width:max-content;
-    margin:0 auto;
+    grid-template-columns:repeat(var(--cols), 1fr);
+    gap:clamp(1px, 0.8vw, 4px);
+    width:100%;
   }
   .blanket-grid .cell{
+    aspect-ratio:1;
     border-radius:5px;
     overflow:hidden;
     border:1px solid var(--wool-cream-dim);
@@ -212,7 +214,7 @@
 </div>
 
 <script>
-let blocks = []; // {id, name, qty, photoDataUrl}
+let blocks = []; // {id, name, qty, photoDataUrl, displayUrl}
 let userEditedGrid = false;
 
 const blockPhotosInput = document.getElementById('blockPhotos');
@@ -248,23 +250,122 @@ function guessNameFromFile(file){
   return base.replace(/[_-]+/g, ' ').trim();
 }
 
+/* --- Vector tracing -------------------------------------------------------
+   Photos are traced to flat-colour SVG with vtracer (WebAssembly, on-device).
+   If the wasm cannot load - e.g. index.html opened straight off the filesystem,
+   where ES module imports are blocked - every block quietly keeps its photo. */
+const DEG = Math.PI / 180;
+const TRACE_MAX_PX = 320;          // longest side fed to the tracer
+const vt = { mod: null, loading: null };
+
+function loadTracer(){
+  if(!vt.loading){
+    vt.loading = import('./vtracer.js')
+      .then(m => m.default({ module_or_path: './vtracer.wasm' }).then(() => { vt.mod = m; }))
+      .catch(err => { console.warn('Vector tracing unavailable, using photos as-is.', err); });
+  }
+  return vt.loading;
+}
+
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/* Settings ported from the validated Python vtracer run. Two conversions matter:
+   vtracer-wasm takes corner/splice thresholds in radians where the CLI takes
+   degrees, and it passes colorPrecision straight through as is_same_color_a
+   where the CLI sends 8 - color_precision, so Python's 5 becomes 3 here. */
+function traceConfig(w, h){
+  return {
+    binary: false,
+    mode: 'spline',
+    hierarchical: 'stacked',
+    colorPrecision: 3,
+    layerDifference: 16,
+    filterSpeckle: Math.max(8, Math.round(w * h / 2560)),
+    cornerThreshold: 140 * DEG,
+    lengthThreshold: 15.0,
+    spliceThreshold: 80 * DEG,
+    maxIterations: 10,
+    pathPrecision: 2
+  };
+}
+
+async function vectorize(dataUrl){
+  await loadTracer();
+  if(!vt.mod) return null;
+  try{
+    const img = await loadImage(dataUrl);
+    const scale = Math.min(1, TRACE_MAX_PX / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h);
+    const svg = vt.mod.to_svg(new Uint8Array(px.data.buffer), w, h, traceConfig(w, h));
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }catch(err){
+    console.warn('Could not trace this photo, keeping the original.', err);
+    return null;
+  }
+}
+
+/* to_svg is synchronous and blocks the main thread for a few hundred ms, so
+   photos are traced one at a time with a yield in between. Each row updates as
+   it finishes instead of the page freezing on a batch of ten.
+   ponytail: a Web Worker would keep the UI fully responsive - worth adding only
+   if she starts adding far more photos at once than she does now. */
+let traceQueue = Promise.resolve();
+function queueTrace(job){
+  traceQueue = traceQueue
+    .then(() => new Promise(r => setTimeout(r, 0)))
+    .then(job)
+    .catch(err => console.warn('Trace job failed.', err));
+  return traceQueue;
+}
+
 blockPhotosInput.addEventListener('change', () => {
   const files = Array.from(blockPhotosInput.files);
   blockPhotosInput.value = '';
-  let remaining = files.length;
   files.forEach(file => {
     readAsDataUrl(file, dataUrl => {
-      pending.push({
+      const item = {
         tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
         dataUrl,
+        displayUrl: dataUrl,
         name: guessNameFromFile(file),
-        qty: 1
+        qty: 1,
+        tracing: true
+      };
+      pending.push(item);
+      renderPendingList();
+      queueTrace(async () => {
+        const svg = await vectorize(item.dataUrl);
+        if(svg) item.displayUrl = svg;
+        item.tracing = false;
+        refreshPendingRow(item);
       });
-      remaining--;
-      if(remaining === 0) renderPendingList();
     });
   });
 });
+
+/* Patch the single row in place: a full re-render here would wipe out whatever
+   she happens to be typing into a name field at the time. */
+function refreshPendingRow(item){
+  const row = pendingListEl.querySelector('[data-temp-id="' + item.tempId + '"]');
+  if(!row) return;
+  row.classList.remove('tracing');
+  const note = row.querySelector('.trace-note');
+  if(note) note.remove();
+  row.querySelector('img').src = item.displayUrl;
+}
 
 function renderPendingList(){
   pendingListEl.innerHTML = '';
@@ -272,12 +373,14 @@ function renderPendingList(){
   bulkQtyRow.style.display = pending.length ? 'flex' : 'none';
   pending.forEach(p => {
     const row = document.createElement('div');
-    row.className = 'pending-item';
+    row.className = 'pending-item' + (p.tracing ? ' tracing' : '');
+    row.dataset.tempId = p.tempId;
     row.innerHTML = `
-      <img src="${p.dataUrl}" alt="">
+      <img src="${p.displayUrl}" alt="">
       <input type="text" value="${escapeHtml(p.name)}" placeholder="Name this block">
       <input type="number" min="1" value="${p.qty}">
       <button class="link" title="Remove">Remove</button>
+      ${p.tracing ? '<span class="trace-note">drawing a clean version of this block\u2026</span>' : ''}
     `;
     const [nameEl, qtyEl] = row.querySelectorAll('input');
     nameEl.addEventListener('input', () => { p.name = nameEl.value; });
@@ -305,7 +408,8 @@ addAllBtn.addEventListener('click', () => {
   pending.forEach(p => {
     blocks.push({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
-      name: p.name.trim(), qty: p.qty, photoDataUrl: p.dataUrl
+      name: p.name.trim(), qty: p.qty,
+      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl
     });
   });
   pending = [];
@@ -322,7 +426,8 @@ function renderBlockList(){
     const row = document.createElement('div');
     row.className = 'block-item';
     row.innerHTML = `
-      <img src="${b.photoDataUrl}" alt="">
+      <img src="${b.displayUrl}" alt="">
+      <div class="info">
         <div class="name">${escapeHtml(b.name)}</div>
         <div class="qty">${b.qty} block${b.qty===1?'':'s'}</div>
       </div>
@@ -455,7 +560,7 @@ function renderResult(result, rows, cols){
     cell.className = 'cell';
     if(id){
       const img = document.createElement('img');
-      img.src = byId[id].photoDataUrl;
+      img.src = byId[id].displayUrl;
       img.title = byId[id].name;
       cell.appendChild(img);
     }
@@ -469,7 +574,7 @@ function renderResult(result, rows, cols){
     const used = usedCounts[b.id] || 0;
     const item = document.createElement('div');
     item.className = 'legend-item';
-    item.innerHTML = `<img src="${b.photoDataUrl}" alt=""><span>${escapeHtml(b.name)}: ${used}/${b.qty}</span>`;
+    item.innerHTML = `<img src="${b.displayUrl}" alt=""><span>${escapeHtml(b.name)}: ${used}/${b.qty}</span>`;
     legendEl.appendChild(item);
   });
 
@@ -489,6 +594,52 @@ function renderResult(result, rows, cols){
 
 renderBlockList();
 updateTotals();
+
+/* --- Live updates ---------------------------------------------------------
+   The whole app is HTML/CSS/JS, so a new version can be delivered without
+   building or sending another APK. On launch the app reads a small manifest
+   from GitHub Pages; if it names a bundle we do not already have, the zip is
+   downloaded and staged, and the next launch starts on the new version.
+   Everything below is a no-op in a plain browser and when offline. */
+const UPDATE_MANIFEST_URL =
+  'https://websterdr21-dev.github.io/blanket-block-planner/live/manifest.json';
+
+async function checkForUpdate(){
+  const cap = window.Capacitor;
+  const LiveUpdate = cap && cap.Plugins && cap.Plugins.LiveUpdate;
+  if(!LiveUpdate || !(cap.isNativePlatform && cap.isNativePlatform())) return;
+
+  /* Tell the plugin this bundle booted successfully. Without it the plugin
+     assumes the running bundle is broken and rolls back to the previous one. */
+  try{ await LiveUpdate.ready(); }
+  catch(err){ console.warn('LiveUpdate.ready() failed.', err); }
+
+  try{
+    const res = await fetch(UPDATE_MANIFEST_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if(!res.ok) return;
+    const manifest = await res.json();
+    if(!manifest.bundleId || !manifest.url) return;
+
+    const current = await LiveUpdate.getCurrentBundle();
+    if(current.bundleId === manifest.bundleId) return;
+
+    const downloaded = await LiveUpdate.getBundles();
+    if(!downloaded.bundleIds.includes(manifest.bundleId)){
+      await LiveUpdate.downloadBundle({
+        bundleId: manifest.bundleId,
+        url: manifest.url,
+        checksum: manifest.checksum
+      });
+    }
+    await LiveUpdate.setNextBundle({ bundleId: manifest.bundleId });
+    console.log('Update ' + manifest.bundleId + ' staged, it starts on the next launch.');
+  }catch(err){
+    /* No signal, GitHub down, bad zip: keep running the version we have. */
+    console.warn('Update check skipped.', err);
+  }
+}
+
+checkForUpdate();
 </script>
 </body>
 </html>

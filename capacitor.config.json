@@ -1,5 +1,11 @@
 {
   "appId": "com.websterdr21.blanketplanner",
   "appName": "Blanket Block Planner",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "LiveUpdate": {
+      "autoDeleteBundles": true,
+      "readyTimeout": 10000
+    }
+  }
 }
