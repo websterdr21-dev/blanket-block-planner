@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Blanket Block Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,249 +11,294 @@
   :root{
     --ink-navy:#1E2233;
     --ink-navy-soft:#272C42;
+    --ink-navy-deep:#171A28;
     --wool-cream:#EFE7D8;
     --wool-cream-dim:#E2D8C4;
     --berry:#8C3F5D;
     --berry-dark:#6E2F49;
+    --berry-light:#D98BA6;
     --marigold:#D69A3E;
     --charcoal:#2A2620;
     --sage:#7C8B7A;
+    --tab-h:66px;
   }
   *{box-sizing:border-box;}
+  html,body{height:100%;}
   body{
     margin:0;
     background:var(--ink-navy);
     color:var(--wool-cream);
-    font-family:'Inter',sans-serif;
+    font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
   }
-  .wrap{max-width:720px;margin:0 auto;padding:32px 20px 80px;}
-  header{text-align:center;margin-bottom:8px;}
-  h1{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:2.1rem;
-    margin:0;
-    letter-spacing:0.01em;
-    color:var(--wool-cream);
+
+  .app{
+    max-width:720px;margin:0 auto;
+    padding:22px 18px calc(var(--tab-h) + env(safe-area-inset-bottom) + 26px);
   }
-  .tagline{
-    font-family:'Caveat',cursive;
-    font-size:1.3rem;
-    color:var(--marigold);
-    margin:4px 0 0;
+  .view[hidden]{display:none;}
+
+  .view-head{margin-bottom:18px;}
+  .view-head h1{
+    font-family:'Fraunces',Georgia,serif;font-weight:600;
+    font-size:1.75rem;margin:0;letter-spacing:0.01em;
   }
-  .stitch-divider{
-    height:16px;
-    margin:22px 0 26px;
-    background-image:radial-gradient(circle at 8px 0, transparent 6px, var(--marigold) 7px, transparent 8px);
-    background-size:16px 16px;
-    background-repeat:repeat-x;
-    background-position:center;
-    opacity:0.85;
+  .view-head .sub{
+    font-family:'Caveat',cursive;font-size:1.2rem;
+    color:var(--marigold);margin:2px 0 0;
   }
+
   .card{
-    background:var(--wool-cream);
-    color:var(--charcoal);
-    border-radius:14px;
-    padding:22px 20px;
-    margin-bottom:22px;
+    background:var(--wool-cream);color:var(--charcoal);
+    border-radius:14px;padding:20px 18px;margin-bottom:18px;
     box-shadow:0 6px 18px rgba(0,0,0,0.25);
   }
   .card h2{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:1.15rem;
-    margin:0 0 14px;
-    color:var(--berry-dark);
+    font-family:'Fraunces',Georgia,serif;font-weight:600;
+    font-size:1.1rem;margin:0 0 12px;color:var(--berry-dark);
   }
-  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
-  .field{flex:1;min-width:130px;display:flex;flex-direction:column;gap:6px;}
-  label{font-size:0.82rem;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:0.04em;}
-  input[type="text"],input[type="number"]{
-    padding:13px 14px;
-    border-radius:10px;
-    border:1.5px solid var(--wool-cream-dim);
-    background:#fff;
-    font-family:'Inter',sans-serif;
-    font-size:1rem;
-    color:var(--charcoal);
-    min-height:48px;
+
+  .field-label{
+    display:block;font-size:0.8rem;font-weight:700;color:var(--sage);
+    text-transform:uppercase;letter-spacing:0.05em;margin:0 0 8px;
   }
-  select{
-    padding:13px 14px;
-    border-radius:10px;
-    border:1.5px solid var(--wool-cream-dim);
-    background:#fff;
-    font-family:'Inter',sans-serif;
-    font-size:1rem;
-    color:var(--charcoal);
-    min-height:48px;
-    width:100%;
-  }
-  input[type="file"]{
-    font-size:0.95rem;
-    padding:10px 0;
-    min-height:48px;
+  input[type="text"],input[type="number"],select{
+    padding:13px 14px;border-radius:10px;
+    border:1.5px solid var(--wool-cream-dim);background:#fff;
+    font-family:'Inter',sans-serif;font-size:1rem;color:var(--charcoal);
+    min-height:48px;width:100%;
   }
   button{
-    font-family:'Inter',sans-serif;
-    font-weight:600;
-    border:none;
-    border-radius:10px;
-    padding:14px 22px;
-    cursor:pointer;
-    font-size:1rem;
-    min-height:48px;
-    transition:transform 0.1s ease, opacity 0.1s ease;
+    font-family:'Inter',sans-serif;font-weight:600;border:none;border-radius:10px;
+    padding:14px 20px;cursor:pointer;font-size:1rem;min-height:48px;
+    transition:transform 0.1s ease,opacity 0.1s ease;
   }
   button:active{transform:scale(0.97);}
-  button.primary{background:var(--berry);color:#fff;}
-  button.primary:hover{background:var(--berry-dark);}
-  button.secondary{background:transparent;color:var(--berry-dark);border:1.5px solid var(--berry-dark);}
-  button.secondary:hover{background:rgba(140,63,93,0.08);}
+  button:focus-visible{outline:3px solid var(--marigold);outline-offset:2px;}
+  .primary{background:var(--berry);color:#fff;width:100%;}
+  .primary:hover{background:var(--berry-dark);}
+  .secondary{background:transparent;color:var(--berry-dark);border:1.5px solid var(--berry-dark);}
+  .link{background:none;color:var(--berry-light);text-decoration:underline;
+        padding:12px 4px;font-weight:500;min-height:auto;font-size:0.95rem;}
   button:disabled{opacity:0.45;cursor:not-allowed;}
-  button.link{background:none;color:var(--berry-dark);text-decoration:underline;padding:12px 10px;font-weight:500;min-height:auto;font-size:0.95rem;}
-  #addAllBtn, #generateBtn{width:100%;}
-  .photo-sources{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .photo-sources{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
   .photo-sources button{flex:1;min-width:140px;}
 
   .pending-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
   .pending-item{
-    display:flex;align-items:center;gap:12px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
     background:#fff;border-radius:12px;padding:12px;
     border:1.5px dashed var(--wool-cream-dim);
-    flex-wrap:wrap;
   }
-  .pending-item.tracing img{opacity:0.45;}
-  .trace-note{flex-basis:100%;font-size:0.82rem;color:var(--sage);font-style:italic;}
   .pending-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;}
-  .pending-item input[type="text"]{flex:1;min-width:100px;}
-  .pending-item input[type="number"]{width:76px;}
-  .block-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
-  .block-item{
-    display:flex;align-items:center;gap:14px;
-    background:#fff;border-radius:12px;padding:10px 12px;
-  }
-  .block-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--wool-cream-dim);}
-  .block-item .info{flex:1;}
-  .block-item .name{font-weight:600;font-size:0.98rem;}
-  .block-item .qty{font-size:0.85rem;color:var(--sage);}
-  .empty-note{font-size:0.9rem;color:var(--sage);font-style:italic;}
+  .pending-item.tracing img{opacity:0.45;}
+  .pending-item input[type="text"]{flex:1;min-width:110px;width:auto;}
+  .pending-item input[type="number"]{width:78px;}
+  .trace-note{flex-basis:100%;font-size:0.82rem;color:var(--sage);font-style:italic;}
 
-  .grid-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
-  .grid-controls .field{max-width:110px;min-width:90px;}
-  .totals{font-size:0.85rem;color:var(--sage);margin-top:10px;}
+  .bulk-row{display:flex;gap:12px;align-items:flex-end;margin-top:12px;flex-wrap:wrap;}
+  .bulk-row .field{max-width:120px;}
+  .bulk-row label{display:block;font-size:0.78rem;font-weight:700;color:var(--sage);
+                  text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+
+  /* Blocks as cards, two across, the way she thinks about her pile of squares. */
+  .block-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px;}
+  .block-card{
+    background:var(--wool-cream);color:var(--charcoal);
+    border-radius:14px;padding:10px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.22);
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .block-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;background:#fff;}
+  .block-card .name{font-weight:650;font-size:0.95rem;line-height:1.25;overflow-wrap:anywhere;}
+  .block-card .qty-row{display:flex;align-items:center;gap:8px;}
+  .block-card input[type="number"]{width:72px;min-height:44px;padding:8px 10px;}
+  .block-card .made{font-size:0.8rem;color:var(--sage);}
+  .block-card .remove{align-self:flex-start;background:none;color:var(--berry-dark);
+    text-decoration:underline;font-size:0.85rem;padding:6px 2px;min-height:auto;font-weight:500;}
+
+  .empty-note{font-size:0.92rem;color:var(--sage);font-style:italic;}
+  .empty-note.warn{color:var(--berry-light);font-style:normal;font-weight:600;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    background:#fff;border:1.5px solid var(--wool-cream-dim);
+    color:var(--charcoal);border-radius:999px;
+    padding:11px 16px;min-height:46px;font-size:0.95rem;font-weight:600;
+  }
+  .chip[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff;}
+  .custom-size{display:flex;gap:12px;margin-top:12px;}
+  .custom-size .field{flex:1;max-width:120px;}
+  .custom-size label{display:block;font-size:0.78rem;font-weight:700;color:var(--sage);
+                     text-transform:uppercase;margin-bottom:6px;}
+
+  .totals{font-size:0.88rem;color:var(--sage);margin:14px 0 0;}
   .totals strong{color:var(--charcoal);}
-  .warn{color:var(--berry-dark);font-weight:600;}
+  .totals .warn{color:var(--berry-dark);font-weight:600;}
 
-  .grid-wrapper{padding:6px 2px 12px;}
-  .blanket-grid{
-    display:grid;
-    grid-template-columns:repeat(var(--cols), 1fr);
-    gap:clamp(1px, 0.8vw, 4px);
-    width:100%;
+  .result-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .result-head h2{margin:0;}
+  .result-actions{display:flex;gap:8px;}
+  .chip-btn{
+    background:transparent;border:1.5px solid var(--berry-dark);color:var(--berry-dark);
+    border-radius:999px;padding:9px 15px;min-height:44px;font-size:0.9rem;
   }
+  .chip-btn[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff;}
+  .edit-hint{font-size:0.88rem;color:var(--berry-dark);font-weight:600;margin:0 0 10px;}
+
+  .grid-wrapper{padding:2px;}
+  .blanket-grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);
+                gap:clamp(1px,0.8vw,4px);width:100%;}
   .blanket-grid .cell{
-    aspect-ratio:1;
-    border-radius:5px;
-    overflow:hidden;
-    border:1px solid var(--wool-cream-dim);
-    background:var(--wool-cream-dim);
+    aspect-ratio:1;border-radius:5px;overflow:hidden;
+    border:1px solid var(--wool-cream-dim);background:var(--wool-cream-dim);
+    padding:0;min-height:0;
   }
   .blanket-grid .cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .blanket-grid.editing .cell{cursor:pointer;border-color:var(--berry);}
+  .blanket-grid .cell.picked{outline:3px solid var(--marigold);outline-offset:-3px;}
+
   .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:0.82rem;}
-  .legend-item img{width:22px;height:22px;border-radius:4px;object-fit:cover;border:1px solid var(--wool-cream-dim);}
+  .legend-item img{width:24px;height:24px;border-radius:4px;object-fit:cover;
+                   border:1px solid var(--wool-cream-dim);}
   .result-note{font-size:0.9rem;margin-top:14px;}
 
+  /* Joining guide */
+  .step-count{font-size:0.82rem;font-weight:700;color:var(--sage);
+              text-transform:uppercase;letter-spacing:0.05em;margin:0 0 8px;}
+  .progress{height:8px;border-radius:999px;background:var(--wool-cream-dim);overflow:hidden;margin-bottom:18px;}
+  .progress-fill{height:100%;background:var(--marigold);border-radius:999px;transition:width 0.2s ease;}
+  .join-figure{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:16px;}
+  .join-figure.stacked{flex-direction:column;}
+  .join-piece{background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--wool-cream-dim);}
+  .join-piece img{display:block;width:100%;height:100%;object-fit:cover;}
+  .join-strip{display:grid;gap:2px;background:var(--wool-cream-dim);padding:2px;border-radius:8px;}
+  .join-strip img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:3px;background:#fff;}
+  .seam{background:var(--marigold);border-radius:999px;}
+  .seam.vertical{width:5px;align-self:stretch;margin:0 8px;}
+  .seam.horizontal{height:5px;align-self:stretch;width:100%;margin:8px 0;}
+  .join-text{font-size:1.02rem;font-weight:600;margin:0 0 12px;}
+  .join-meta{display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+             background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.9rem;}
+  .join-meta .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,0.18);
+                     display:inline-block;vertical-align:middle;margin-right:7px;}
+  .step-nav{display:flex;gap:10px;}
+  .step-nav button{flex:1;}
+
+  .settings-list{display:flex;flex-direction:column;gap:6px;font-size:0.93rem;}
+  .settings-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+                border-bottom:1px solid var(--wool-cream-dim);}
+  .settings-row:last-child{border-bottom:0;}
+  .settings-row span:last-child{color:var(--sage);text-align:right;overflow-wrap:anywhere;}
+  .tips{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:7px;font-size:0.93rem;}
+  .tips li::marker{color:var(--sage);}
+
+  /* Bottom tabs */
+  .tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    display:grid;grid-template-columns:repeat(4,1fr);
+    background:var(--ink-navy-deep);
+    border-top:1px solid rgba(239,231,216,0.12);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabbar button{
+    background:none;border-radius:0;color:var(--sage);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:9px 4px;min-height:var(--tab-h);font-size:0.7rem;font-weight:600;
+    letter-spacing:0.02em;
+  }
+  .tabbar button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;
+                     stroke-linecap:round;stroke-linejoin:round;}
+  .tabbar button[aria-selected="true"]{color:var(--marigold);}
+
   .reinstall{
-    background:var(--berry);
-    color:var(--wool-cream);
-    border-radius:14px;
-    padding:20px;
-    margin-bottom:22px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.3);
+    background:var(--berry);color:var(--wool-cream);
+    border-radius:0 0 14px 14px;padding:20px 18px;
+    max-width:720px;margin:0 auto 4px;
   }
-  .reinstall h2{
-    font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;
-    margin:0 0 8px;color:#fff;
-  }
+  .reinstall h2{font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;margin:0 0 8px;color:#fff;}
   .reinstall p{margin:0 0 14px;font-size:0.95rem;}
-  .reinstall-link{
-    display:block;text-align:center;text-decoration:none;
-    background:var(--wool-cream);color:var(--berry-dark);
-    font-weight:700;font-size:1.05rem;
-    padding:16px;border-radius:10px;min-height:48px;
-  }
-  .reinstall-small{
-    font-size:0.85rem;opacity:0.9;margin:12px 0 0 !important;
+  .reinstall-link{display:block;text-align:center;text-decoration:none;
+    background:var(--wool-cream);color:var(--berry-dark);font-weight:700;font-size:1.05rem;
+    padding:16px;border-radius:10px;}
+  .reinstall-small{font-size:0.85rem;opacity:0.9;margin:12px 0 0 !important;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="reinstall" id="reinstallNotice" style="display:none;">
-    <h2>A new version needs installing</h2>
-    <p>Part of this update is built into the app itself, so it can't arrive on its own like the others do.</p>
-    <a class="reinstall-link" id="reinstallLink" href="https://websterdr21-dev.github.io/blanket-block-planner/">Get the new version</a>
-    <p class="reinstall-small">Install it straight over the top &mdash; don't uninstall this one first, or you'll lose the blocks you've added. You can carry on using the app in the meantime.</p>
-  </div>
 
-  <header>
-    <h1>Blanket Block Planner</h1>
-    <p class="tagline">upload your blocks, tell it how many, let it figure out the order</p>
-  </header>
-  <div class="stitch-divider"></div>
+<div class="reinstall" id="reinstallNotice" style="display:none;">
+  <h2>A new version needs installing</h2>
+  <p>Part of this update is built into the app itself, so it can't arrive on its own like the others do.</p>
+  <a class="reinstall-link" id="reinstallLink" href="https://websterdr21-dev.github.io/blanket-block-planner/">Get the new version</a>
+  <p class="reinstall-small">Install it straight over the top &mdash; don't uninstall this one first, or you'll lose the blocks you've added. You can carry on using the app in the meantime.</p>
+</div>
 
-  <div class="card">
-    <h2>Add block patterns</h2>
-    <div class="field-row">
-      <div class="field">
-        <label>Add your block photos</label>
-        <div class="photo-sources">
-          <button type="button" class="secondary" id="takePhotoBtn">Take a photo</button>
-          <button type="button" class="secondary" id="pickPhotosBtn">Choose from gallery</button>
+<main class="app">
+
+  <section class="view" id="view-blocks">
+    <div class="view-head">
+      <h1>My blocks</h1>
+      <p class="sub">photograph each pattern once</p>
+    </div>
+
+    <div class="card">
+      <span class="field-label">Add your block photos</span>
+      <div class="photo-sources">
+        <button type="button" class="secondary" id="takePhotoBtn">Take a photo</button>
+        <button type="button" class="secondary" id="pickPhotosBtn">Choose from gallery</button>
+      </div>
+      <!-- capture="environment" sends Android straight to the camera app;
+           the other input opens the picker and takes as many as she likes. -->
+      <input type="file" id="blockCamera" accept="image/*" capture="environment" hidden>
+      <input type="file" id="blockPhotos" accept="image/*" multiple hidden>
+
+      <div class="pending-list" id="pendingList"></div>
+
+      <div class="bulk-row" id="bulkQtyRow" style="display:none;">
+        <div class="field">
+          <label for="bulkQtyInput">Set qty for all</label>
+          <input type="number" id="bulkQtyInput" min="1" value="1">
         </div>
-        <!-- capture="environment" sends Android straight to the camera app;
-             the other input opens the picker and takes as many as she likes. -->
-        <input type="file" id="blockCamera" accept="image/*" capture="environment" hidden>
-        <input type="file" id="blockPhotos" accept="image/*" multiple hidden>
+        <button class="secondary" id="applyQtyBtn">Apply to all</button>
       </div>
+      <button class="primary" id="addAllBtn" style="display:none;margin-top:12px;">Add to blanket</button>
     </div>
 
-    <div class="field-row" id="bulkQtyRow" style="display:none;align-items:flex-end;margin-top:10px;">
-      <div class="field" style="max-width:110px;min-width:90px;">
-        <label for="bulkQtyInput">Set qty for all</label>
-        <input type="number" id="bulkQtyInput" min="1" value="1">
-      </div>
-      <button class="secondary" id="applyQtyBtn">Apply to all</button>
-    </div>
-    <div class="pending-list" id="pendingList"></div>
-    <button class="primary" id="addAllBtn" style="display:none;margin-top:6px;">Add to blanket</button>
-
-    <div class="block-list" id="blockList"></div>
-    <p class="empty-note" id="emptyNote">No blocks added yet. Choose photos above to get started.</p>
+    <div class="block-grid" id="blockGrid"></div>
+    <p class="empty-note" id="emptyNote">No blocks yet. Take a photo of your first one above.</p>
     <p class="empty-note warn" id="saveWarn" style="display:none;">There are too many blocks to save. Your work will be lost when the app closes, so screenshot a layout you want to keep.</p>
     <button class="link" id="clearAllBtn" style="display:none;">Start a new blanket</button>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>Blanket size</h2>
-    <div class="grid-controls">
-      <div class="field">
-        <label for="rowsInput">Rows</label>
-        <input type="number" id="rowsInput" min="1" value="4">
-      </div>
-      <div class="field">
-        <label for="colsInput">Columns</label>
-        <input type="number" id="colsInput" min="1" value="4">
-      </div>
-      <button class="secondary" id="suggestBtn">Auto-suggest size</button>
+  <section class="view" id="view-layout" hidden>
+    <div class="view-head">
+      <h1>Layout</h1>
+      <p class="sub">how big, and what it should look like</p>
     </div>
-    <p class="totals" id="totalsNote"></p>
-    <div class="field" style="margin-top:16px;">
-      <label for="patternSelect">Pattern style</label>
+
+    <div class="card">
+      <span class="field-label">Blanket size</span>
+      <div class="chips" id="sizeChips"></div>
+      <div class="custom-size" id="customSize" hidden>
+        <div class="field">
+          <label for="rowsInput">Rows</label>
+          <input type="number" id="rowsInput" min="1" value="4">
+        </div>
+        <div class="field">
+          <label for="colsInput">Columns</label>
+          <input type="number" id="colsInput" min="1" value="4">
+        </div>
+      </div>
+      <p class="totals" id="totalsNote"></p>
+
+      <span class="field-label" style="margin-top:20px;">Pattern style</span>
       <select id="patternSelect">
         <option value="scattered">Scattered &mdash; no two the same touching</option>
         <option value="stripes">Stripes &mdash; a pattern per row</option>
@@ -262,139 +307,116 @@
         <option value="framed">Framed &mdash; one pattern as a border</option>
         <option value="rings">Rings &mdash; from the outside in</option>
       </select>
-    </div>
-    <button class="primary" id="generateBtn" style="margin-top:14px;">Generate layout</button>
-  </div>
 
-  <div class="card" id="resultCard" style="display:none;">
-    <h2>Your blanket layout</h2>
-    <div class="grid-wrapper">
-      <div class="blanket-grid" id="resultGrid"></div>
+      <button class="primary" id="generateBtn" style="margin-top:16px;">Generate layout</button>
     </div>
-    <div class="legend" id="legend"></div>
-    <p class="result-note" id="resultNote"></p>
-  </div>
-</div>
+
+    <div class="card" id="resultCard" hidden>
+      <div class="result-head">
+        <h2>Your layout</h2>
+        <div class="result-actions">
+          <button class="chip-btn" id="editBtn" aria-pressed="false">Edit</button>
+          <button class="chip-btn" id="shareBtn">Share</button>
+        </div>
+      </div>
+      <p class="edit-hint" id="editHint" hidden>Tap one square, then tap another, to swap them over.</p>
+      <div class="grid-wrapper">
+        <div class="blanket-grid" id="resultGrid"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <p class="result-note" id="resultNote"></p>
+    </div>
+  </section>
+
+  <section class="view" id="view-guide" hidden>
+    <div class="view-head">
+      <h1>Joining guide</h1>
+      <p class="sub">one seam at a time</p>
+    </div>
+
+    <div class="card" id="guideEmpty">
+      <p style="margin:0;">Make a layout first, then this will walk you through joining the blocks together, one seam at a time.</p>
+    </div>
+
+    <div class="card" id="guideBody" hidden>
+      <p class="step-count" id="stepCount"></p>
+      <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="join-figure" id="joinFigure"></div>
+      <p class="join-text" id="joinText"></p>
+      <div class="join-meta" id="joinMeta"></div>
+      <div class="step-nav">
+        <button class="secondary" id="prevStep">Previous</button>
+        <button class="primary" id="nextStep">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-settings" hidden>
+    <div class="view-head">
+      <h1>Settings</h1>
+    </div>
+
+    <div class="card">
+      <h2>Taking a good photo</h2>
+      <ul class="tips">
+        <li>Lay the block flat and hold the phone straight above it.</li>
+        <li>Put it on something plain, a different colour from the block.</li>
+        <li>Get the whole block in, with a little space around the edges.</li>
+        <li>Use daylight where you can, and keep your shadow off it.</li>
+      </ul>
+      <p style="margin:14px 0 0;font-size:0.9rem;color:var(--sage);">A loose tail of yarn is fine &mdash; it knows to ignore those.</p>
+    </div>
+
+    <div class="card">
+      <h2>About</h2>
+      <div class="settings-list" id="aboutList"></div>
+      <p style="margin:14px 0 0;font-size:0.9rem;color:var(--sage);">Your photos are turned into drawings on the phone itself. Nothing is uploaded anywhere.</p>
+    </div>
+
+    <div class="card">
+      <h2>Start again</h2>
+      <p style="margin:0 0 12px;font-size:0.93rem;">This clears every block and the layout, and cannot be undone.</p>
+      <button class="secondary" id="clearAllBtn2" style="width:100%;">Start a new blanket</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar" id="tabbar" role="tablist">
+  <button role="tab" data-tab="blocks" aria-selected="true">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>
+    Blocks
+  </button>
+  <button role="tab" data-tab="layout" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+    Layout
+  </button>
+  <button role="tab" data-tab="guide" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 1 4 17z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 0 20 17z"/></svg>
+    Guide
+  </button>
+  <button role="tab" data-tab="settings" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.11a1.6 1.6 0 0 0-1-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-1H3a2 2 0 1 1 0-4h.11a1.6 1.6 0 0 0 1.47-1 1.6 1.6 0 0 0-.32-1.77l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.6 1.6 0 0 0 1.77.32H9a1.6 1.6 0 0 0 1-1.47V3a2 2 0 1 1 4 0v.11a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.32 1.77V9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.11a1.6 1.6 0 0 0-1.47 1z"/></svg>
+    Settings
+  </button>
+</nav>
 
 <script>
-let blocks = []; // {id, name, qty, photoDataUrl, displayUrl}
-let userEditedGrid = false;
-let lastResult = null;
-
-const blockPhotosInput = document.getElementById('blockPhotos');
-const blockCameraInput = document.getElementById('blockCamera');
-const takePhotoBtn = document.getElementById('takePhotoBtn');
-const pickPhotosBtn = document.getElementById('pickPhotosBtn');
-const pendingListEl = document.getElementById('pendingList');
-const addAllBtn = document.getElementById('addAllBtn');
-const bulkQtyRow = document.getElementById('bulkQtyRow');
-const bulkQtyInput = document.getElementById('bulkQtyInput');
-const applyQtyBtn = document.getElementById('applyQtyBtn');
-const blockListEl = document.getElementById('blockList');
-let pending = []; // {tempId, dataUrl, name, qty}
-const emptyNote = document.getElementById('emptyNote');
-const rowsInput = document.getElementById('rowsInput');
-const colsInput = document.getElementById('colsInput');
-const suggestBtn = document.getElementById('suggestBtn');
-const totalsNote = document.getElementById('totalsNote');
-const generateBtn = document.getElementById('generateBtn');
-const resultCard = document.getElementById('resultCard');
-const resultGrid = document.getElementById('resultGrid');
-const legendEl = document.getElementById('legend');
-const resultNote = document.getElementById('resultNote');
-const clearAllBtn = document.getElementById('clearAllBtn');
-const patternSelect = document.getElementById('patternSelect');
-const saveWarn = document.getElementById('saveWarn');
-
-/* --- Remembering her work ---------------------------------------------------
-   Android kills backgrounded apps whenever it wants the memory, so without
-   this she loses a morning of photographing to one phone call.
-
-   Only the traced SVG is kept, never the original photo: a phone photo is
-   ~430KB as a data URL and a dozen of them would blow the ~5MB localStorage
-   budget on their own, while the SVGs are ~30-60KB. On the way back in the
-   SVG stands in for the photo too, which is what the app draws anyway. */
-const SAVE_KEY = 'blanket-block-planner/v1';
-
-function saveState(){
-  try{
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 1,
-      blocks: blocks.map(b => ({ id:b.id, name:b.name, qty:b.qty, displayUrl:b.displayUrl })),
-      rows: rowsInput.value,
-      cols: colsInput.value,
-      pattern: patternSelect.value,
-      userEditedGrid,
-      result: lastResult
-    }));
-    saveWarn.style.display = 'none';
-  }catch(err){
-    /* Out of quota, or storage blocked entirely. Say so rather than letting
-       her believe it is saved. */
-    console.warn('Could not save.', err);
-    saveWarn.style.display = blocks.length ? 'block' : 'none';
-  }
-}
-
-function loadState(){
-  let saved = null;
-  try{ saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }
-  catch(err){ console.warn('Could not read saved blocks.', err); return; }
-  if(!saved || saved.v !== 1 || !Array.isArray(saved.blocks) || !saved.blocks.length) return;
-
-  blocks = saved.blocks.map(b => ({
-    id: b.id, name: b.name, qty: b.qty,
-    displayUrl: b.displayUrl,
-    photoDataUrl: b.displayUrl
-  }));
-  if(saved.rows) rowsInput.value = saved.rows;
-  if(saved.cols) colsInput.value = saved.cols;
-  if(saved.pattern && PATTERNS[saved.pattern]) patternSelect.value = saved.pattern;
-  userEditedGrid = !!saved.userEditedGrid;
-
-  if(saved.result && Array.isArray(saved.result.grid)){
-    lastResult = saved.result;
-    // Restore the plan she was looking at, without yanking the page down to it.
-    renderResult(saved.result, parseInt(saved.rows,10) || 1, parseInt(saved.cols,10) || 1, false);
-  }
-}
-
-rowsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
-colsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
-
-clearAllBtn.addEventListener('click', () => {
-  if(!confirm('Start a new blanket? This clears the blocks you have added.')) return;
-  blocks = [];
-  lastResult = null;
-  userEditedGrid = false;
-  resultCard.style.display = 'none';
-  try{ localStorage.removeItem(SAVE_KEY); }catch(err){ /* nothing to clean up */ }
-  renderBlockList();
-  applySuggestion();
-  updateTotals();
-});
-
-function readAsDataUrl(file, cb){
-  const reader = new FileReader();
-  reader.onload = e => cb(e.target.result);
-  reader.readAsDataURL(file);
-}
-
-function guessNameFromFile(file){
-  const base = file.name.replace(/\.[^/.]+$/, '');
-  return base.replace(/[_-]+/g, ' ').trim();
-}
-
-/* --- Vector tracing -------------------------------------------------------
-   Photos are traced to flat-colour SVG with vtracer (WebAssembly, on-device).
-   If the wasm cannot load - e.g. index.html opened straight off the filesystem,
-   where ES module imports are blocked - every block quietly keeps its photo. */
+/* ---------------------------------------------------------------------------
+   Engines carried over unchanged: photo -> flat SVG, and layout generation.
+   --------------------------------------------------------------------------- */
 const DEG = Math.PI / 180;
+
 const TRACE_MAX_PX = 256;          // longest side fed to the pipeline
+
 const TRACE_COLOURS = 7;           // flat palette size
+
 const KUWAHARA_RADIUS = 4;
+
 const DETECT_PX = 192;             // resolution the block is located at
+
 const CROP_PAD = 0.02;             // breathing room around the found block
+
 const vt = { mod: null, loading: null };
 
 function loadTracer(){
@@ -414,22 +436,6 @@ function loadImage(src){
     img.src = src;
   });
 }
-
-/* --- Finding the block ------------------------------------------------------
-   Photos are taken on a table or on the blanket itself, so a good part of the
-   frame is background. Left in, it takes palette slots that the yarn colours
-   need and it ends up drawn into the block's SVG.
-
-   Flood the background inwards from the frame edge and keep whatever the flood
-   never reaches. Two details make it hold up on real photos:
-
-   - Seeds come only from the dominant colours along the frame edge, so a block
-     that runs off the side of the photo does not seed the flood from its own
-     pixels and eat itself.
-   - The box is taken from row and column density, not from the outermost block
-     pixel. A loose yarn tail is the same colour as the block and connected to
-     it, so an extremes-based box gets dragged to the frame edge by a handful
-     of stray pixels. */
 
 function detectBlock(src, w, h){
   const STEP_TOL = 9;    // biggest Lab step still counted as the same surface
@@ -497,21 +503,6 @@ function detectBlock(src, w, h){
   return { x0, y0, x1, y1 };
 }
 
-/* --- Flattening ------------------------------------------------------------
-   Tracing a photo directly follows the yarn texture, which is why a raw trace
-   came out as hundreds of paths of mottling rather than a clean illustration.
-   Two stages run before the tracer, and between them they do the work:
-
-   1. Kuwahara: for each pixel, look at four overlapping quadrants and take the
-      mean of whichever is flattest. Inside a region that smooths the texture
-      away; at a boundary the quadrant that does not straddle the edge wins, so
-      edges stay sharp instead of blurring across.
-   2. k-means in CIELab with luminance weighted down, which is what keeps the
-      palette on the yarn colours. In RGB, a shadowed navy and a lit navy are
-      far apart and burn two of the six slots, leaving the actual colours to
-      share the rest; in Lab they differ mostly in L, so weighting L down
-      collapses them into one. */
-
 function kuwahara(src, w, h, r){
   /* Summed-area tables turn each quadrant's mean and variance into a handful
      of lookups instead of a (r+1)^2 scan, which is the difference between
@@ -556,6 +547,7 @@ function kuwahara(src, w, h, r){
   }
   return out;
 }
+
 function rgbToLab(R, G, B){
   const lin = v => { v/=255; return v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
   const r=lin(R), g=lin(G), b=lin(B);
@@ -666,15 +658,7 @@ function flatten(src, w, h, k){
   }
   return out;
 }
-/* Settings ported from the validated Python vtracer run, then re-tuned against
-   a real crochet photo. Two conversions matter: vtracer-wasm takes corner and
-   splice thresholds in radians where the CLI takes degrees, and it passes
-   colorPrecision straight through as is_same_color_a where the CLI sends
-   8 - color_precision, so higher here means more colours merged.
 
-   The tracer now sees an already-flat image, so it only has to follow the
-   region boundaries. On a real photo that is ~50 paths instead of ~585.
-   colorPrecision above 2 merged the petals into the border. */
 function traceConfig(w, h){
   return {
     binary: false,
@@ -691,9 +675,6 @@ function traceConfig(w, h){
   };
 }
 
-/* Locate the block in the photo. Anything suspicious - no detection, or a box
-   so small it is probably a shadow rather than the block - falls back to the
-   whole photo, which is what the app did before cropping existed. */
 function findBlockRect(img){
   const whole = { x:0, y:0, w:img.width, h:img.height };
   try{
@@ -721,207 +702,6 @@ function findBlockRect(img){
   }
 }
 
-async function vectorize(dataUrl){
-  await loadTracer();
-  if(!vt.mod) return null;
-  try{
-    const img = await loadImage(dataUrl);
-    const crop = findBlockRect(img);
-    const scale = Math.min(1, TRACE_MAX_PX / Math.max(crop.w, crop.h));
-    const w = Math.max(1, Math.round(crop.w * scale));
-    const h = Math.max(1, Math.round(crop.h * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    // Re-sampled from the original, so cropping costs no detail.
-    ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, w, h);
-    const smoothed = kuwahara(ctx.getImageData(0, 0, w, h), w, h, KUWAHARA_RADIUS);
-    const flat = flatten(smoothed, w, h, TRACE_COLOURS);
-    const svg = vt.mod.to_svg(new Uint8Array(flat.data.buffer), w, h, traceConfig(w, h));
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  }catch(err){
-    console.warn('Could not trace this photo, keeping the original.', err);
-    return null;
-  }
-}
-
-/* to_svg is synchronous and blocks the main thread for a few hundred ms, so
-   photos are traced one at a time with a yield in between. Each row updates as
-   it finishes instead of the page freezing on a batch of ten.
-   ponytail: a Web Worker would keep the UI fully responsive - worth adding only
-   if she starts adding far more photos at once than she does now. */
-let traceQueue = Promise.resolve();
-function queueTrace(job){
-  traceQueue = traceQueue
-    .then(() => new Promise(r => setTimeout(r, 0)))
-    .then(job)
-    .catch(err => console.warn('Trace job failed.', err));
-  return traceQueue;
-}
-
-function addPhotoFiles(input){
-  const files = Array.from(input.files);
-  input.value = '';
-  files.forEach(file => {
-    readAsDataUrl(file, dataUrl => {
-      const item = {
-        tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
-        dataUrl,
-        displayUrl: dataUrl,
-        name: guessNameFromFile(file),
-        qty: 1,
-        tracing: true
-      };
-      pending.push(item);
-      renderPendingList();
-      queueTrace(async () => {
-        const svg = await vectorize(item.dataUrl);
-        if(svg) item.displayUrl = svg;
-        item.tracing = false;
-        refreshPendingRow(item);
-      });
-    });
-  });
-}
-
-blockPhotosInput.addEventListener('change', () => addPhotoFiles(blockPhotosInput));
-blockCameraInput.addEventListener('change', () => addPhotoFiles(blockCameraInput));
-takePhotoBtn.addEventListener('click', () => blockCameraInput.click());
-pickPhotosBtn.addEventListener('click', () => blockPhotosInput.click());
-
-/* Patch the single row in place: a full re-render here would wipe out whatever
-   she happens to be typing into a name field at the time. */
-function refreshPendingRow(item){
-  const row = pendingListEl.querySelector('[data-temp-id="' + item.tempId + '"]');
-  if(!row) return;
-  row.classList.remove('tracing');
-  const note = row.querySelector('.trace-note');
-  if(note) note.remove();
-  row.querySelector('img').src = item.displayUrl;
-}
-
-function renderPendingList(){
-  pendingListEl.innerHTML = '';
-  addAllBtn.style.display = pending.length ? 'block' : 'none';
-  bulkQtyRow.style.display = pending.length ? 'flex' : 'none';
-  pending.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'pending-item' + (p.tracing ? ' tracing' : '');
-    row.dataset.tempId = p.tempId;
-    row.innerHTML = `
-      <img src="${p.displayUrl}" alt="">
-      <input type="text" value="${escapeHtml(p.name)}" placeholder="Name this block">
-      <input type="number" min="1" value="${p.qty}">
-      <button class="link" title="Remove">Remove</button>
-      ${p.tracing ? '<span class="trace-note">drawing a clean version of this block\u2026</span>' : ''}
-    `;
-    const [nameEl, qtyEl] = row.querySelectorAll('input');
-    nameEl.addEventListener('input', () => { p.name = nameEl.value; });
-    qtyEl.addEventListener('input', () => { p.qty = parseInt(qtyEl.value,10) || 1; });
-    row.querySelector('button').addEventListener('click', () => {
-      pending = pending.filter(x => x.tempId !== p.tempId);
-      renderPendingList();
-    });
-    pendingListEl.appendChild(row);
-  });
-}
-
-applyQtyBtn.addEventListener('click', () => {
-  const val = parseInt(bulkQtyInput.value, 10);
-  if(!val || val < 1) return;
-  pending.forEach(p => { p.qty = val; });
-  renderPendingList();
-});
-
-addAllBtn.addEventListener('click', () => {
-  if(pending.some(p => !p.name.trim() || !p.qty || p.qty < 1)){
-    alert('Every photo needs a name and a quantity of at least 1 before adding.');
-    return;
-  }
-  pending.forEach(p => {
-    blocks.push({
-      id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
-      name: p.name.trim(), qty: p.qty,
-      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl
-    });
-  });
-  pending = [];
-  renderPendingList();
-  renderBlockList();
-  if(!userEditedGrid) applySuggestion();
-  updateTotals();
-  saveState();
-});
-
-function renderBlockList(){
-  blockListEl.innerHTML = '';
-  emptyNote.style.display = blocks.length ? 'none' : 'block';
-  clearAllBtn.style.display = blocks.length ? 'block' : 'none';
-  blocks.forEach(b => {
-    const row = document.createElement('div');
-    row.className = 'block-item';
-    row.innerHTML = `
-      <img src="${b.displayUrl}" alt="">
-      <div class="info">
-        <div class="name">${escapeHtml(b.name)}</div>
-        <div class="qty">${b.qty} block${b.qty===1?'':'s'}</div>
-      </div>
-      <button class="link" data-id="${b.id}">Remove</button>
-    `;
-    row.querySelector('button').addEventListener('click', () => {
-      blocks = blocks.filter(x => x.id !== b.id);
-      if(!blocks.length){ lastResult = null; resultCard.style.display = 'none'; }
-      renderBlockList();
-      if(!userEditedGrid) applySuggestion();
-      updateTotals();
-      saveState();
-    });
-    blockListEl.appendChild(row);
-  });
-}
-
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function totalBlocks(){
-  return blocks.reduce((sum,b) => sum + b.qty, 0);
-}
-
-function suggestGrid(total){
-  if(total <= 0) return {rows:4, cols:4};
-  let r = Math.max(1, Math.round(Math.sqrt(total)));
-  let c = Math.max(1, Math.round(total / r));
-  return {rows:r, cols:c};
-}
-
-function applySuggestion(){
-  const s = suggestGrid(totalBlocks());
-  rowsInput.value = s.rows;
-  colsInput.value = s.cols;
-}
-
-suggestBtn.addEventListener('click', () => {
-  userEditedGrid = false;
-  applySuggestion();
-  updateTotals();
-  saveState();
-});
-
-function updateTotals(){
-  const total = totalBlocks();
-  const rows = parseInt(rowsInput.value,10) || 0;
-  const cols = parseInt(colsInput.value,10) || 0;
-  const capacity = rows * cols;
-  let msg = `<strong>${total}</strong> block${total===1?'':'s'} added &middot; grid holds <strong>${capacity}</strong>.`;
-  if(capacity < total){
-    msg += ` <span class="warn">${total - capacity} block${total-capacity===1?'':'s'} will be left over.</span>`;
-  } else if(capacity > total){
-    msg += ` <span class="warn">${capacity - total} empty cell${capacity-total===1?'':'s'} left, add more blocks or shrink the grid.</span>`;
-  }
-  totalsNote.innerHTML = msg;
-}
-
 function shuffle(arr){
   for(let i=arr.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
@@ -930,13 +710,6 @@ function shuffle(arr){
   return arr;
 }
 
-/* --- Pattern styles ---------------------------------------------------------
-   Every style except Scattered is a geometric ideal: given a row and column it
-   says which block it would like there. The ideal ignores how many of each
-   block she actually has, so the fitting step below reconciles the two - it
-   places what it can, then fills the gaps with whatever is left. That way a
-   pattern still produces something usable when the quantities do not divide
-   neatly, which with hand-made blocks they never do. */
 const PATTERNS = {
   scattered: {
     label: 'Scattered',
@@ -992,10 +765,6 @@ function countConflicts(grid, rows, cols){
   return conflicts;
 }
 
-/* Lay out to a geometric ideal, limited by what she actually has.
-   Pass one gives each square its ideal block while that block lasts; pass two
-   fills whatever is still empty, preferring something that does not match its
-   neighbours so the gaps do not read as mistakes. */
 function layoutToIdeal(rows, cols, blockDefs, ideal){
   const capacity = rows * cols;
   const stock = {};
@@ -1076,14 +845,410 @@ function generateLayout(rows, cols, blockDefs){
   return { grid: best, conflicts: bestConflicts, leftover, capacity, used: capacity - best.filter(x=>x===null).length };
 }
 
-generateBtn.addEventListener('click', () => {
-  if(!blocks.length){
-    alert('Add at least one block pattern first.');
+function suggestGrid(total){
+  if(total <= 0) return {rows:4, cols:4};
+  let r = Math.max(1, Math.round(Math.sqrt(total)));
+  let c = Math.max(1, Math.round(total / r));
+  return {rows:r, cols:c};
+}
+
+function needsNewApp(installedVersionCode, requiredVersionCode){
+  const installed = parseInt(installedVersionCode, 10);
+  const required = parseInt(requiredVersionCode, 10);
+  if(!isFinite(required) || required <= 0) return false;   // nothing demanded
+  if(!isFinite(installed)) return false;                   // cannot tell, don't nag
+  return installed < required;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------------------------------------------------------------------
+   State
+   --------------------------------------------------------------------------- */
+let blocks = [];        // {id, name, qty, displayUrl, photoDataUrl, edgeColour}
+let pending = [];       // {tempId, dataUrl, displayUrl, name, qty, tracing}
+let userEditedGrid = false;
+let lastResult = null;
+let guideStep = 0;
+let activeTab = 'blocks';
+let editMode = false;
+let pickedCell = null;
+
+const SAVE_KEY = 'blanket-block-planner/v1';
+const UPDATE_MANIFEST_URL =
+  'https://websterdr21-dev.github.io/blanket-block-planner/live/manifest.json';
+
+const $ = id => document.getElementById(id);
+
+const blockPhotosInput = $('blockPhotos');
+const blockCameraInput = $('blockCamera');
+const pendingListEl = $('pendingList');
+const blockGridEl = $('blockGrid');
+const rowsInput = $('rowsInput');
+const colsInput = $('colsInput');
+const patternSelect = $('patternSelect');
+const resultGrid = $('resultGrid');
+const legendEl = $('legend');
+const resultNote = $('resultNote');
+const resultCard = $('resultCard');
+
+/* ---------------------------------------------------------------------------
+   Tabs
+   --------------------------------------------------------------------------- */
+function showTab(name){
+  activeTab = name;
+  ['blocks','layout','guide','settings'].forEach(t => {
+    $('view-' + t).hidden = (t !== name);
+  });
+  document.querySelectorAll('#tabbar button').forEach(b => {
+    b.setAttribute('aria-selected', String(b.dataset.tab === name));
+  });
+  if(name === 'guide') renderGuide();
+  window.scrollTo(0, 0);
+  saveState();
+}
+document.querySelectorAll('#tabbar button').forEach(b => {
+  b.addEventListener('click', () => showTab(b.dataset.tab));
+});
+
+/* ---------------------------------------------------------------------------
+   Saving
+   --------------------------------------------------------------------------- */
+function saveState(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 2,
+      blocks: blocks.map(b => ({ id:b.id, name:b.name, qty:b.qty,
+                                 displayUrl:b.displayUrl, edgeColour:b.edgeColour })),
+      rows: rowsInput.value, cols: colsInput.value,
+      userEditedGrid, pattern: patternSelect.value,
+      result: lastResult, guideStep, activeTab
+    }));
+    $('saveWarn').style.display = 'none';
+  }catch(err){
+    console.warn('Could not save.', err);
+    $('saveWarn').style.display = blocks.length ? 'block' : 'none';
+  }
+}
+
+function loadState(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }
+  catch(err){ console.warn('Could not read saved blocks.', err); return; }
+  if(!saved || !Array.isArray(saved.blocks) || !saved.blocks.length) return;
+
+  blocks = saved.blocks.map(b => ({
+    id:b.id, name:b.name, qty:b.qty,
+    displayUrl:b.displayUrl, photoDataUrl:b.displayUrl,
+    edgeColour: b.edgeColour || null
+  }));
+  if(saved.rows) rowsInput.value = saved.rows;
+  if(saved.cols) colsInput.value = saved.cols;
+  userEditedGrid = !!saved.userEditedGrid;
+  if(saved.pattern && PATTERNS[saved.pattern]) patternSelect.value = saved.pattern;
+  guideStep = saved.guideStep || 0;
+
+  if(saved.result && Array.isArray(saved.result.grid)){
+    lastResult = saved.result;
+    /* Layouts saved before the rewrite carry no rows/cols of their own, and
+       editing and sharing both need them. Backfill from the saved grid size. */
+    lastResult.rows = lastResult.rows || parseInt(saved.rows,10) || 1;
+    lastResult.cols = lastResult.cols || parseInt(saved.cols,10) || 1;
+    renderResult(lastResult, lastResult.rows, lastResult.cols);
+  }
+  if(saved.activeTab) activeTab = saved.activeTab;
+}
+
+/* ---------------------------------------------------------------------------
+   Adding photos
+   --------------------------------------------------------------------------- */
+function readAsDataUrl(file, cb){
+  const reader = new FileReader();
+  reader.onload = e => cb(e.target.result);
+  reader.readAsDataURL(file);
+}
+function guessNameFromFile(file){
+  return file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+}
+
+/* The colour around the outside of a block, taken from the flattened image.
+   The joining guide suggests sewing in this colour, since that is the yarn the
+   seam will sit against. */
+function edgeColour(img, w, h){
+  const d = img.data, side = Math.min(w,h);
+  /* Sample a ring set in from the edge, not the edge itself. The crop keeps a
+     little breathing room around the block, so the outermost pixels are the
+     table or the blanket underneath; this lands on the block's border round. */
+  const inner = Math.max(2, Math.round(side * 0.05));
+  const outer = Math.max(inner + 2, Math.round(side * 0.16));
+  const inRing = (x,y) => {
+    const dist = Math.min(x, y, w-1-x, h-1-y);
+    return dist >= inner && dist <= outer;
+  };
+  const counts = new Map();
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    if(!inRing(x,y)) continue;
+    const i = (y*w + x) * 4;
+    const key = (d[i]<<16) | (d[i+1]<<8) | d[i+2];
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  let best = null, most = -1;
+  for(const [k,v] of counts) if(v > most){ most = v; best = k; }
+  if(best === null) return null;
+  return '#' + [(best>>16)&255, (best>>8)&255, best&255]
+    .map(n => n.toString(16).padStart(2,'0')).join('');
+}
+
+async function vectorize(dataUrl){
+  await loadTracer();
+  if(!vt.mod) return null;
+  try{
+    const img = await loadImage(dataUrl);
+    const crop = findBlockRect(img);
+    const scale = Math.min(1, TRACE_MAX_PX / Math.max(crop.w, crop.h));
+    const w = Math.max(1, Math.round(crop.w * scale));
+    const h = Math.max(1, Math.round(crop.h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // Re-sampled from the original, so cropping costs no detail.
+    ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, w, h);
+    const smoothed = kuwahara(ctx.getImageData(0, 0, w, h), w, h, KUWAHARA_RADIUS);
+    const flat = flatten(smoothed, w, h, TRACE_COLOURS);
+    const svg = vt.mod.to_svg(new Uint8Array(flat.data.buffer), w, h, traceConfig(w, h));
+    return {
+      url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
+      edgeColour: edgeColour(flat, w, h)
+    };
+  }catch(err){
+    console.warn('Could not trace this photo, keeping the original.', err);
+    return null;
+  }
+}
+
+/* to_svg is synchronous, so photos are traced one at a time with a yield in
+   between. Each row updates as it finishes rather than the page freezing.
+   ponytail: a Web Worker would keep the UI fully responsive - worth adding only
+   if she starts adding far more photos at once than she does now. */
+let traceQueue = Promise.resolve();
+function queueTrace(job){
+  traceQueue = traceQueue
+    .then(() => new Promise(r => setTimeout(r, 0)))
+    .then(job)
+    .catch(err => console.warn('Trace job failed.', err));
+  return traceQueue;
+}
+
+function addPhotoFiles(input){
+  const files = Array.from(input.files);
+  input.value = '';
+  files.forEach(file => {
+    readAsDataUrl(file, dataUrl => {
+      const item = {
+        tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
+        dataUrl, displayUrl: dataUrl,
+        name: guessNameFromFile(file), qty: 1, tracing: true, edgeColour: null
+      };
+      pending.push(item);
+      renderPendingList();
+      queueTrace(async () => {
+        const traced = await vectorize(item.dataUrl);
+        if(traced){ item.displayUrl = traced.url; item.edgeColour = traced.edgeColour; }
+        item.tracing = false;
+        refreshPendingRow(item);
+      });
+    });
+  });
+}
+
+blockPhotosInput.addEventListener('change', () => addPhotoFiles(blockPhotosInput));
+blockCameraInput.addEventListener('change', () => addPhotoFiles(blockCameraInput));
+$('takePhotoBtn').addEventListener('click', () => blockCameraInput.click());
+$('pickPhotosBtn').addEventListener('click', () => blockPhotosInput.click());
+
+/* Patch the one row in place: a full re-render would wipe out whatever she
+   happens to be typing into a name field at the time. */
+function refreshPendingRow(item){
+  const row = pendingListEl.querySelector('[data-temp-id="' + item.tempId + '"]');
+  if(!row) return;
+  row.classList.remove('tracing');
+  const note = row.querySelector('.trace-note');
+  if(note) note.remove();
+  row.querySelector('img').src = item.displayUrl;
+}
+
+function renderPendingList(){
+  pendingListEl.innerHTML = '';
+  $('addAllBtn').style.display = pending.length ? 'block' : 'none';
+  $('bulkQtyRow').style.display = pending.length ? 'flex' : 'none';
+  pending.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'pending-item' + (p.tracing ? ' tracing' : '');
+    row.dataset.tempId = p.tempId;
+    row.innerHTML =
+      '<img src="' + p.displayUrl + '" alt="">' +
+      '<input type="text" value="' + escapeHtml(p.name) + '" placeholder="Name this block">' +
+      '<input type="number" min="1" value="' + p.qty + '">' +
+      '<button class="link" title="Remove">Remove</button>' +
+      (p.tracing ? '<span class="trace-note">drawing a clean version of this block…</span>' : '');
+    const [nameEl, qtyEl] = row.querySelectorAll('input');
+    nameEl.addEventListener('input', () => { p.name = nameEl.value; });
+    qtyEl.addEventListener('input', () => { p.qty = parseInt(qtyEl.value,10) || 1; });
+    row.querySelector('button').addEventListener('click', () => {
+      pending = pending.filter(x => x.tempId !== p.tempId);
+      renderPendingList();
+    });
+    pendingListEl.appendChild(row);
+  });
+}
+
+$('applyQtyBtn').addEventListener('click', () => {
+  const val = parseInt($('bulkQtyInput').value, 10);
+  if(!val || val < 1) return;
+  pending.forEach(p => { p.qty = val; });
+  renderPendingList();
+});
+
+$('addAllBtn').addEventListener('click', () => {
+  if(pending.some(p => !p.name.trim() || !p.qty || p.qty < 1)){
+    alert('Every photo needs a name and a quantity of at least 1 before adding.');
     return;
   }
+  pending.forEach(p => {
+    blocks.push({
+      id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
+      name: p.name.trim(), qty: p.qty,
+      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl, edgeColour: p.edgeColour
+    });
+  });
+  pending = [];
+  renderPendingList();
+  renderBlockList();
+  if(!userEditedGrid) applySuggestion();
+  updateTotals();
+  saveState();
+});
+
+function renderBlockList(){
+  blockGridEl.innerHTML = '';
+  $('emptyNote').style.display = blocks.length ? 'none' : 'block';
+  $('clearAllBtn').style.display = blocks.length ? 'block' : 'none';
+  blocks.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'block-card';
+    card.innerHTML =
+      '<img src="' + b.displayUrl + '" alt="">' +
+      '<div class="name">' + escapeHtml(b.name) + '</div>' +
+      '<div class="qty-row"><input type="number" min="1" value="' + b.qty + '">' +
+      '<span class="made">made</span></div>' +
+      '<button class="remove">Remove</button>';
+    const qtyEl = card.querySelector('input');
+    qtyEl.addEventListener('input', () => {
+      b.qty = parseInt(qtyEl.value, 10) || 1;
+      if(!userEditedGrid) applySuggestion();
+      updateTotals();
+      saveState();
+    });
+    card.querySelector('.remove').addEventListener('click', () => {
+      blocks = blocks.filter(x => x.id !== b.id);
+      if(!blocks.length){ lastResult = null; resultCard.hidden = true; }
+      renderBlockList();
+      if(!userEditedGrid) applySuggestion();
+      updateTotals();
+      saveState();
+    });
+    blockGridEl.appendChild(card);
+  });
+}
+
+function clearEverything(){
+  if(!confirm('Start a new blanket? This clears the blocks you have added.')) return;
+  blocks = []; pending = []; lastResult = null; guideStep = 0;
+  userEditedGrid = false; editMode = false; pickedCell = null;
+  resultCard.hidden = true;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(err){ /* nothing to clean up */ }
+  renderPendingList(); renderBlockList(); applySuggestion(); updateTotals();
+  showTab('blocks');
+}
+$('clearAllBtn').addEventListener('click', clearEverything);
+$('clearAllBtn2').addEventListener('click', clearEverything);
+
+/* ---------------------------------------------------------------------------
+   Size and totals
+   --------------------------------------------------------------------------- */
+const SIZE_PRESETS = [[3,4],[4,5],[5,6],[6,7]];
+
+function renderSizeChips(){
+  const wrap = $('sizeChips');
+  wrap.innerHTML = '';
+  const r = parseInt(rowsInput.value,10), c = parseInt(colsInput.value,10);
+  const mk = (label, pressed, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(pressed));
+    b.addEventListener('click', onClick);
+    wrap.appendChild(b);
+  };
+  mk('Auto', !userEditedGrid, () => {
+    userEditedGrid = false; applySuggestion(); updateTotals();
+    $('customSize').hidden = true; renderSizeChips(); saveState();
+  });
+  SIZE_PRESETS.forEach(([pr,pc]) => {
+    mk(pr + ' × ' + pc, userEditedGrid && r === pr && c === pc, () => {
+      userEditedGrid = true;
+      rowsInput.value = pr; colsInput.value = pc;
+      $('customSize').hidden = true;
+      updateTotals(); renderSizeChips(); saveState();
+    });
+  });
+  const isPreset = SIZE_PRESETS.some(([pr,pc]) => pr === r && pc === c);
+  mk('Custom', userEditedGrid && !isPreset, () => {
+    userEditedGrid = true;
+    $('customSize').hidden = false;
+    renderSizeChips(); saveState();
+  });
+}
+
+function totalBlocks(){ return blocks.reduce((sum,b) => sum + b.qty, 0); }
+
+function applySuggestion(){
+  const s = suggestGrid(totalBlocks());
+  rowsInput.value = s.rows; colsInput.value = s.cols;
+}
+
+function updateTotals(){
+  const total = totalBlocks();
+  const rows = parseInt(rowsInput.value,10) || 0;
+  const cols = parseInt(colsInput.value,10) || 0;
+  const capacity = rows * cols;
+  let msg = '<strong>' + total + '</strong> block' + (total===1?'':'s') +
+            ' · grid holds <strong>' + capacity + '</strong>.';
+  if(capacity < total){
+    const n = total - capacity;
+    msg += ' <span class="warn">' + n + ' block' + (n===1?'':'s') + ' will be left over.</span>';
+  } else if(capacity > total){
+    const n = capacity - total;
+    msg += ' <span class="warn">' + n + ' empty cell' + (n===1?'':'s') +
+           ' left, add more blocks or shrink the grid.</span>';
+  }
+  $('totalsNote').innerHTML = msg;
+  renderSizeChips();
+}
+
+rowsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
+colsInput.addEventListener('input', () => { userEditedGrid = true; updateTotals(); saveState(); });
+patternSelect.addEventListener('change', saveState);
+
+/* ---------------------------------------------------------------------------
+   Generating and showing a layout
+   --------------------------------------------------------------------------- */
+$('generateBtn').addEventListener('click', () => {
+  if(!blocks.length){ alert('Add at least one block first.'); showTab('blocks'); return; }
   const rows = parseInt(rowsInput.value,10);
   const cols = parseInt(colsInput.value,10);
-  if(!rows || !cols || rows<1 || cols<1){
+  if(!rows || !cols || rows < 1 || cols < 1){
     alert('Rows and columns need to be at least 1.');
     return;
   }
@@ -1093,28 +1258,34 @@ generateBtn.addEventListener('click', () => {
     ? layoutToIdeal(rows, cols, blocks, pattern.ideal)
     : generateLayout(rows, cols, blocks);
   result.style = style;
+  result.rows = rows; result.cols = cols;
+  result.edited = false;
   lastResult = result;
+  guideStep = 0;
+  editMode = false; pickedCell = null;
   renderResult(result, rows, cols);
   saveState();
 });
 
-patternSelect.addEventListener('change', saveState);
+function blockById(id){ return blocks.find(b => b.id === id) || null; }
 
-function renderResult(result, rows, cols, scroll){
-  const byId = {};
-  blocks.forEach(b => byId[b.id] = b);
-
+function renderResult(result, rows, cols){
   resultGrid.style.setProperty('--cols', cols);
   resultGrid.innerHTML = '';
-  result.grid.forEach(id => {
-    const cell = document.createElement('div');
+  resultGrid.classList.toggle('editing', editMode);
+
+  result.grid.forEach((id, idx) => {
+    const cell = document.createElement('button');
+    cell.type = 'button';
     cell.className = 'cell';
-    if(id){
+    cell.dataset.idx = idx;
+    const b = id ? blockById(id) : null;
+    if(b){
       const img = document.createElement('img');
-      img.src = byId[id].displayUrl;
-      img.title = byId[id].name;
+      img.src = b.displayUrl; img.title = b.name; img.alt = b.name;
       cell.appendChild(img);
     }
+    cell.addEventListener('click', () => onCellTap(idx));
     resultGrid.appendChild(cell);
   });
 
@@ -1122,71 +1293,284 @@ function renderResult(result, rows, cols, scroll){
   result.grid.forEach(id => { if(id) usedCounts[id] = (usedCounts[id]||0) + 1; });
   legendEl.innerHTML = '';
   blocks.forEach(b => {
-    const used = usedCounts[b.id] || 0;
     const item = document.createElement('div');
     item.className = 'legend-item';
-    item.innerHTML = `<img src="${b.displayUrl}" alt=""><span>${escapeHtml(b.name)}: ${used}/${b.qty}</span>`;
+    item.innerHTML = '<img src="' + b.displayUrl + '" alt="">' +
+      '<span>' + escapeHtml(b.name) + ': ' + (usedCounts[b.id] || 0) + '/' + b.qty + '</span>';
     legendEl.appendChild(item);
   });
 
+  resultNote.textContent = describeResult(result);
+  resultCard.hidden = false;
+  $('editHint').hidden = !editMode;
+  $('editBtn').setAttribute('aria-pressed', String(editMode));
+}
+
+function describeResult(result){
+  if(result.edited) return 'You have rearranged this one by hand.';
   let note = '';
   if(result.leftover > 0){
-    note += `${result.leftover} block${result.leftover===1?'':'s'} didn't fit in this grid size and weren't used. `;
+    note += result.leftover + ' block' + (result.leftover===1?'':'s') +
+            " didn't fit in this grid size and weren't used. ";
   }
-
   const style = result.style || 'scattered';
   if(style === 'scattered'){
     if(result.conflicts > 0){
-      note += `Couldn't fully avoid matching blocks touching, ${result.conflicts} pair${result.conflicts===1?'':'s'} of the same block ended up next to each other because of the quantities on hand.`;
+      note += "Couldn't fully avoid matching blocks touching, " + result.conflicts +
+              ' pair' + (result.conflicts===1?'':'s') +
+              ' of the same block ended up next to each other because of the quantities on hand.';
     } else if(!note){
       note = 'No two matching blocks end up touching.';
     }
   } else {
-    /* In every other style, matching blocks touching is the point, so counting
-       them as conflicts would be nonsense. What matters is how much of the
-       pattern her quantities could actually cover. */
     const short = result.used - result.followed;
+    const label = PATTERNS[style].label.toLowerCase();
     if(short > 0){
-      note += `${result.followed} of ${result.used} squares follow the ${PATTERNS[style].label.toLowerCase()} pattern. The other ${short} were filled in with what was left over.`;
+      note += result.followed + ' of ' + result.used + ' squares follow the ' + label +
+              ' pattern. The other ' + short + ' were filled in with what was left over.';
     } else if(!note){
-      note = `Every square follows the ${PATTERNS[style].label.toLowerCase()} pattern.`;
+      note = 'Every square follows the ' + label + ' pattern.';
     }
   }
-  resultNote.textContent = note;
-  resultCard.style.display = 'block';
-  if(scroll !== false) resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+  return note;
 }
 
-loadState();
-renderBlockList();
-updateTotals();
+/* --- Editing by hand -------------------------------------------------------
+   Tap one square then another to swap them. Dragging is fiddly on a phone and
+   worse with older hands; two taps are hard to get wrong. */
+$('editBtn').addEventListener('click', () => {
+  editMode = !editMode;
+  pickedCell = null;
+  if(lastResult) renderResult(lastResult, lastResult.rows, lastResult.cols);
+});
 
-/* --- Live updates ---------------------------------------------------------
-   The whole app is HTML/CSS/JS, so a new version can be delivered without
-   building or sending another APK. On launch the app reads a small manifest
-   from GitHub Pages; if it names a bundle we do not already have, the zip is
-   downloaded and staged, and the next launch starts on the new version.
-   Everything below is a no-op in a plain browser and when offline. */
-const UPDATE_MANIFEST_URL =
-  'https://websterdr21-dev.github.io/blanket-block-planner/live/manifest.json';
-
-/* Some changes cannot travel as a live update: a new plugin, or the launcher
-   icon. When that happens the manifest raises minVersionCode above what the
-   installed APK reports, and she is told to install a new one. The bundle is
-   deliberately NOT staged in that case - it may expect native code this build
-   does not have, and applying it would break a working app. */
-function needsNewApp(installedVersionCode, requiredVersionCode){
-  const installed = parseInt(installedVersionCode, 10);
-  const required = parseInt(requiredVersionCode, 10);
-  if(!isFinite(required) || required <= 0) return false;   // nothing demanded
-  if(!isFinite(installed)) return false;                   // cannot tell, don't nag
-  return installed < required;
+function onCellTap(idx){
+  if(!editMode || !lastResult) return;
+  if(pickedCell === null){
+    pickedCell = idx;
+    const cell = resultGrid.querySelector('[data-idx="' + idx + '"]');
+    if(cell) cell.classList.add('picked');
+    return;
+  }
+  if(pickedCell === idx){
+    pickedCell = null;
+    const cell = resultGrid.querySelector('[data-idx="' + idx + '"]');
+    if(cell) cell.classList.remove('picked');
+    return;
+  }
+  const g = lastResult.grid;
+  const tmp = g[pickedCell]; g[pickedCell] = g[idx]; g[idx] = tmp;
+  lastResult.edited = true;
+  lastResult.conflicts = countConflicts(g, lastResult.rows, lastResult.cols);
+  pickedCell = null;
+  renderResult(lastResult, lastResult.rows, lastResult.cols);
+  saveState();
 }
 
+/* --- Sharing ---------------------------------------------------------------
+   Draw the layout to a canvas and hand it to the phone's own share sheet, so
+   it can go straight into WhatsApp. Falls back to saving the picture. */
+$('shareBtn').addEventListener('click', async () => {
+  if(!lastResult) return;
+  const btn = $('shareBtn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Working…';
+  try{
+    const blob = await layoutToPng(lastResult);
+    const file = new File([blob], 'blanket-layout.png', { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: 'My blanket layout' });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'blanket-layout.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') { /* she closed the share sheet */ }
+    else { console.warn('Could not share the layout.', err); alert('Sorry, that picture could not be made.'); }
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+
+async function layoutToPng(result){
+  const { rows, cols, grid } = result;
+  const CELL = 130, GAP = 6, PAD = 22;
+  const w = PAD*2 + cols*CELL + (cols-1)*GAP;
+  const h = PAD*2 + rows*CELL + (rows-1)*GAP;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#1E2233'; ctx.fillRect(0,0,w,h);
+
+  const cache = new Map();
+  for(const b of blocks){
+    if(!cache.has(b.id)) cache.set(b.id, await loadImage(b.displayUrl));
+  }
+  grid.forEach((id, idx) => {
+    const r = Math.floor(idx/cols), c = idx % cols;
+    const x = PAD + c*(CELL+GAP), y = PAD + r*(CELL+GAP);
+    ctx.fillStyle = '#E2D8C4';
+    ctx.fillRect(x, y, CELL, CELL);
+    const img = id ? cache.get(id) : null;
+    if(img) ctx.drawImage(img, x, y, CELL, CELL);
+  });
+  return await new Promise(res => canvas.toBlob(res, 'image/png'));
+}
+
+/* ---------------------------------------------------------------------------
+   Joining guide
+   --------------------------------------------------------------------------
+   Blankets go together the way you would expect: join each row into a strip
+   first, then sew the strips to one another. So the steps are every side seam
+   row by row, then one seam per pair of rows. */
+function buildJoinSteps(result){
+  const { rows, cols, grid } = result;
+  const steps = [];
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols-1; c++){
+      const a = grid[r*cols + c], b = grid[r*cols + c + 1];
+      if(a === null || b === null) continue;
+      steps.push({ kind:'side', row:r, col:c, a, b });
+    }
+  }
+  for(let r=0; r<rows-1; r++){
+    steps.push({ kind:'row', row:r });
+  }
+  return steps;
+}
+
+function renderGuide(){
+  const has = !!(lastResult && Array.isArray(lastResult.grid) && blocks.length);
+  $('guideEmpty').hidden = has;
+  $('guideBody').hidden = !has;
+  if(!has) return;
+
+  const steps = buildJoinSteps(lastResult);
+  if(!steps.length){
+    $('guideEmpty').hidden = false;
+    $('guideBody').hidden = true;
+    return;
+  }
+  if(guideStep >= steps.length) guideStep = steps.length - 1;
+  if(guideStep < 0) guideStep = 0;
+
+  const step = steps[guideStep];
+  const cols = lastResult.cols;
+
+  $('stepCount').textContent = 'Step ' + (guideStep+1) + ' of ' + steps.length;
+  $('progressFill').style.width = (((guideStep+1) / steps.length) * 100) + '%';
+
+  const fig = $('joinFigure');
+  fig.innerHTML = '';
+  fig.classList.toggle('stacked', step.kind === 'row');
+
+  let seamColour = null;
+
+  if(step.kind === 'side'){
+    const A = blockById(step.a), B = blockById(step.b);
+    fig.appendChild(joinPiece(A, 116));
+    fig.appendChild(seamEl('vertical'));
+    fig.appendChild(joinPiece(B, 116));
+    $('joinText').textContent =
+      'Row ' + (step.row+1) + ': join these two blocks along the edge between them.';
+    seamColour = (A && A.edgeColour) || (B && B.edgeColour) || null;
+  } else {
+    fig.appendChild(rowStrip(step.row, cols));
+    fig.appendChild(seamEl('horizontal'));
+    fig.appendChild(rowStrip(step.row + 1, cols));
+    $('joinText').textContent =
+      'Join row ' + (step.row+1) + ' to row ' + (step.row+2) + ' along the whole edge.';
+    const first = blockById(lastResult.grid[step.row*cols]);
+    seamColour = first && first.edgeColour;
+  }
+
+  const meta = $('joinMeta');
+  meta.innerHTML = '';
+  if(seamColour){
+    const el = document.createElement('div');
+    el.innerHTML = '<span class="swatch" style="background:' + seamColour + '"></span>' +
+                   'Sew in a yarn about this colour';
+    meta.appendChild(el);
+  }
+  const left = steps.length - (guideStep + 1);
+  const rest = document.createElement('div');
+  rest.textContent = left === 0 ? 'Last seam — the blanket is together after this one.'
+                                : left + ' seam' + (left===1?'':'s') + ' to go.';
+  meta.appendChild(rest);
+
+  $('prevStep').disabled = guideStep === 0;
+  $('nextStep').disabled = guideStep >= steps.length - 1;
+}
+
+/* The marigold bar standing in for the seam she is about to sew. */
+function seamEl(direction){
+  const d = document.createElement('div');
+  d.className = 'seam ' + direction;
+  return d;
+}
+
+function joinPiece(b, size){
+  const d = document.createElement('div');
+  d.className = 'join-piece';
+  d.style.width = size + 'px'; d.style.height = size + 'px';
+  if(b) d.innerHTML = '<img src="' + b.displayUrl + '" alt="' + escapeHtml(b.name) + '">';
+  return d;
+}
+
+function rowStrip(rowIndex, cols){
+  const strip = document.createElement('div');
+  strip.className = 'join-strip';
+  strip.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+  strip.style.width = '100%';
+  for(let c=0; c<cols; c++){
+    const id = lastResult.grid[rowIndex*cols + c];
+    const b = id ? blockById(id) : null;
+    const img = document.createElement('img');
+    if(b){ img.src = b.displayUrl; img.alt = b.name; }
+    strip.appendChild(img);
+  }
+  return strip;
+}
+
+$('prevStep').addEventListener('click', () => { guideStep--; renderGuide(); saveState(); });
+$('nextStep').addEventListener('click', () => { guideStep++; renderGuide(); saveState(); });
+
+/* ---------------------------------------------------------------------------
+   Settings
+   --------------------------------------------------------------------------- */
+async function renderAbout(){
+  const rows = [];
+  const cap = window.Capacitor;
+  const LiveUpdate = cap && cap.Plugins && cap.Plugins.LiveUpdate;
+  if(LiveUpdate && cap.isNativePlatform && cap.isNativePlatform()){
+    try{
+      const v = await LiveUpdate.getVersionName();
+      const code = await LiveUpdate.getVersionCode();
+      rows.push(['App version', v.versionName + ' (' + code.versionCode + ')']);
+    }catch(err){ /* not important enough to surface */ }
+    try{
+      const cur = await LiveUpdate.getCurrentBundle();
+      rows.push(['Update', cur.bundleId || 'the one it was installed with']);
+    }catch(err){ /* ditto */ }
+  } else {
+    rows.push(['Running in', 'a web browser']);
+  }
+  rows.push(['Blocks', String(blocks.length)]);
+  rows.push(['Squares planned', String(totalBlocks())]);
+  $('aboutList').innerHTML = rows
+    .map(([k,v]) => '<div class="settings-row"><span>' + k + '</span><span>' + escapeHtml(v) + '</span></div>')
+    .join('');
+}
+
+/* ---------------------------------------------------------------------------
+   Live updates
+   --------------------------------------------------------------------------- */
 function showReinstallNotice(url){
-  const notice = document.getElementById('reinstallNotice');
-  if(url) document.getElementById('reinstallLink').href = url;
-  notice.style.display = 'block';
+  if(url) $('reinstallLink').href = url;
+  $('reinstallNotice').style.display = 'block';
 }
 
 async function checkForUpdate(){
@@ -1194,8 +1578,8 @@ async function checkForUpdate(){
   const LiveUpdate = cap && cap.Plugins && cap.Plugins.LiveUpdate;
   if(!LiveUpdate || !(cap.isNativePlatform && cap.isNativePlatform())) return;
 
-  /* Tell the plugin this bundle booted successfully. Without it the plugin
-     assumes the running bundle is broken and rolls back to the previous one. */
+  /* Tell the plugin this bundle booted. Without it the plugin assumes the
+     running bundle is broken and rolls back to the previous one. */
   try{ await LiveUpdate.ready(); }
   catch(err){ console.warn('LiveUpdate.ready() failed.', err); }
 
@@ -1205,27 +1589,21 @@ async function checkForUpdate(){
     const manifest = await res.json();
 
     let installedVersion = null;
-    try{
-      installedVersion = (await LiveUpdate.getVersionCode()).versionCode;
-    }catch(err){
-      console.warn('Could not read the installed app version.', err);
-    }
+    try{ installedVersion = (await LiveUpdate.getVersionCode()).versionCode; }
+    catch(err){ console.warn('Could not read the installed app version.', err); }
     if(needsNewApp(installedVersion, manifest.minVersionCode)){
       showReinstallNotice(manifest.appPageUrl);
       return;
     }
 
     if(!manifest.bundleId || !manifest.url) return;
-
     const current = await LiveUpdate.getCurrentBundle();
     if(current.bundleId === manifest.bundleId) return;
 
     const downloaded = await LiveUpdate.getBundles();
     if(!downloaded.bundleIds.includes(manifest.bundleId)){
       await LiveUpdate.downloadBundle({
-        bundleId: manifest.bundleId,
-        url: manifest.url,
-        checksum: manifest.checksum
+        bundleId: manifest.bundleId, url: manifest.url, checksum: manifest.checksum
       });
     }
     await LiveUpdate.setNextBundle({ bundleId: manifest.bundleId });
@@ -1236,6 +1614,14 @@ async function checkForUpdate(){
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Start
+   --------------------------------------------------------------------------- */
+loadState();
+renderBlockList();
+updateTotals();
+showTab(activeTab);
+renderAbout();
 checkForUpdate();
 </script>
 </body>

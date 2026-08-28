@@ -73,6 +73,20 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Four tabs.** Blocks, Layout, Guide, Settings. The page used to be one long
+  scroll; the joining guide needed somewhere to live that was not below the
+  layout she is trying to follow it against.
+- **Joining guide.** Walks her through assembling the blanket one seam at a
+  time, the way blankets actually go together: every side seam row by row, then
+  one seam per pair of rows. A 4x5 blanket is 4x4 + 3 = 19 steps. Each step
+  shows the two pieces, which edge, how many seams remain, and a swatch of the
+  colour to sew in - taken from a ring set in from the edge of the flattened
+  image, since the outermost pixels are the crop padding rather than the yarn.
+- **Editing by hand.** Tap one square then another to swap them. Dragging is
+  fiddly on a phone; two taps are hard to get wrong. An edited layout says so
+  rather than keeping a claim about a pattern it no longer follows.
+- **Sharing.** Draws the layout to a PNG and hands it to the phone's share
+  sheet, falling back to saving the picture where that is unavailable.
 - **Pattern styles.** Six layouts to choose from: Scattered (the original, no
   two of the same touching), Stripes, Diagonals, Checkerboard, Framed and
   Rings. Each of the five geometric styles is expressed as an *ideal* - given a
