@@ -144,7 +144,11 @@ an older bundle, a fresh install downgrades itself on first launch.
   4. **[vtracer](https://github.com/visioncortex/vtracer)** on the flat image,
      so it only follows region boundaries.
 
-  Nothing is uploaded anywhere and no AI is involved. ~16-50 KB per block
+  Nothing leaves the phone: no service is called, no model is downloaded, and
+  the project has no AI API anywhere in it. That is not the same as "no AI" -
+  step 3 is k-means, which is a machine-learning algorithm, and the layout
+  engine in the next section is a constraint solver, which is classical AI.
+  Both run entirely on the device. ~16-50 KB per block
   against ~320-430 KB for the JPEG, and a 168-cell grid paints in 86 ms against
   352 ms for photos, without holding 36 MB of decoded bitmaps. If the wasm
   can't load, blocks fall back to their original photos and the rest still works.
