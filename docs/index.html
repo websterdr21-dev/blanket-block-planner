@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blanket Block Planner &mdash; download and guide</title>
+<meta name="description" content="Download the Blanket Block Planner app and learn how to use it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  /* Light is the default ground: the app itself is navy, but a guide gets read
+     on a bright phone. Both themes are defined at token level. */
+  :root{
+    --ground:#EFE7D8;
+    --ground-sunk:#E5DAC6;
+    --card:#FBF7EF;
+    --ink:#2A2620;
+    --ink-soft:#5E564A;
+    --berry:#8C3F5D;
+    --berry-deep:#6E2F49;
+    --marigold:#B87A22;
+    --marigold-bright:#D69A3E;
+    --sage:#63735F;
+    --rule:#D6C9B0;
+    --on-berry:#FBF7EF;
+    --shadow:0 2px 10px rgba(42,38,32,0.09);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#1E2233;
+      --ground-sunk:#181B29;
+      --card:#272C42;
+      --ink:#EFE7D8;
+      --ink-soft:#B3AC9E;
+      --berry:#D98BA6;
+      --berry-deep:#E7A8BE;
+      --marigold:#D69A3E;
+      --marigold-bright:#E8B25B;
+      --sage:#9BAA97;
+      --rule:#3A4059;
+      --on-berry:#1E2233;
+      --shadow:0 2px 12px rgba(0,0,0,0.34);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#1E2233;
+    --ground-sunk:#181B29;
+    --card:#272C42;
+    --ink:#EFE7D8;
+    --ink-soft:#B3AC9E;
+    --berry:#D98BA6;
+    --berry-deep:#E7A8BE;
+    --marigold:#D69A3E;
+    --marigold-bright:#E8B25B;
+    --sage:#9BAA97;
+    --rule:#3A4059;
+    --on-berry:#1E2233;
+    --shadow:0 2px 12px rgba(0,0,0,0.34);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-size:17px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:38rem;margin:0 auto;padding:44px 22px 96px;}
+
+  h1{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;font-size:2.1rem;line-height:1.14;
+    margin:0;text-wrap:balance;
+  }
+  .standfirst{
+    font-family:'Caveat',cursive;font-size:1.4rem;line-height:1.3;
+    color:var(--marigold);margin:8px 0 0;
+  }
+  h2{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;font-size:1.4rem;line-height:1.22;
+    margin:0 0 10px;color:var(--berry-deep);text-wrap:balance;
+  }
+  h3{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:1rem;
+    margin:0 0 6px;color:var(--ink);
+  }
+  p{margin:0 0 14px;}
+  p:last-child{margin-bottom:0;}
+  a{color:var(--berry-deep);text-underline-offset:3px;}
+  a:focus-visible,.download:focus-visible{outline:3px solid var(--marigold-bright);outline-offset:3px;border-radius:6px;}
+  strong{font-weight:650;}
+
+  /* The app draws a row of stitch holes between its cards. Same motif here. */
+  .stitches{
+    height:16px;margin:36px 0 30px;border:0;
+    background-image:radial-gradient(circle at 8px 0, transparent 6px, var(--marigold) 7px, transparent 8px);
+    background-size:16px 16px;background-repeat:repeat-x;background-position:center;
+    opacity:0.7;
+  }
+
+  .part{display:flex;flex-direction:column;gap:20px;}
+  .eyebrow{
+    font-size:0.72rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--sage);margin:0 0 8px;
+  }
+
+  /* The whole point of the page: one obvious thing to tap. */
+  .download{
+    display:block;text-align:center;text-decoration:none;
+    background:var(--berry);color:var(--on-berry);
+    font-weight:700;font-size:1.12rem;
+    padding:19px 20px;border-radius:14px;
+    box-shadow:var(--shadow);
+    margin:4px 0 8px;
+  }
+  .download:hover{background:var(--berry-deep);}
+  .download small{display:block;font-weight:500;font-size:0.83rem;opacity:0.85;margin-top:3px;}
+  .under-btn{font-size:0.86rem;color:var(--ink-soft);text-align:center;margin:0;}
+
+  /* Numbered because the install genuinely is a sequence - step 5 makes no
+     sense before step 4, and she needs to know where she is in it. */
+  ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px;counter-reset:step;}
+  ol.steps > li{
+    counter-increment:step;
+    display:grid;grid-template-columns:2.3rem 1fr;gap:14px;align-items:start;
+  }
+  ol.steps > li::before{
+    content:counter(step);
+    font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:1.12rem;
+    width:2.3rem;height:2.3rem;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--berry);color:var(--on-berry);
+    font-variant-numeric:tabular-nums;
+  }
+  ol.steps .body{padding-top:2px;min-width:0;}
+
+  /* What the phone puts on screen, quoted so she can match it to what she is
+     looking at. This is the part people get stuck on. */
+  .screen{
+    background:var(--ground-sunk);
+    border:1px solid var(--rule);
+    border-radius:11px;
+    padding:13px 15px;
+    margin:12px 0;
+    font-size:0.95rem;
+  }
+  .screen .said{
+    display:block;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;
+    text-transform:uppercase;color:var(--sage);margin-bottom:5px;
+  }
+  .screen q{font-style:italic;}
+  .screen .then{display:block;margin-top:9px;font-size:0.92rem;color:var(--ink-soft);}
+
+  .btn{
+    display:inline-block;padding:1px 9px;border-radius:7px;
+    background:var(--berry);color:var(--on-berry);
+    font-size:0.9rem;font-weight:600;white-space:nowrap;
+  }
+  .tap{font-weight:650;color:var(--berry-deep);}
+
+  .card{
+    background:var(--card);border-radius:14px;padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .note{
+    border-left:4px solid var(--marigold-bright);
+    background:var(--card);border-radius:0 12px 12px 0;
+    padding:15px 18px;
+  }
+  .hand{font-family:'Caveat',cursive;font-size:1.22rem;color:var(--marigold);}
+
+  ul.plain{margin:0;padding:0 0 0 1.15em;display:flex;flex-direction:column;gap:7px;}
+  ul.plain li::marker{color:var(--sage);}
+
+  .shots{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;}
+  .shots li{display:grid;grid-template-columns:3.2rem 1fr;gap:10px;align-items:baseline;}
+  .tick{color:var(--sage);font-weight:700;font-size:0.82rem;letter-spacing:0.06em;text-transform:uppercase;}
+  .cross{color:var(--berry);font-weight:700;font-size:0.82rem;letter-spacing:0.06em;text-transform:uppercase;}
+
+  .swatch{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-width:180px;margin-top:12px;}
+  .swatch div{aspect-ratio:1;border-radius:4px;}
+  .c1{background:#8C3F5D;} .c2{background:#7C8B7A;}
+  .c3{background:#D69A3E;} .c4{background:#4A5170;}
+
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:0.86em;background:var(--ground-sunk);
+    padding:1.5px 6px;border-radius:5px;
+    overflow-wrap:anywhere;
+  }
+  .cmd{
+    display:block;background:var(--ground-sunk);border:1px solid var(--rule);
+    border-radius:9px;padding:11px 13px;margin-top:9px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.84rem;
+    overflow-x:auto;white-space:pre;color:var(--ink);
+  }
+  footer{
+    margin-top:38px;padding-top:20px;border-top:1px solid var(--rule);
+    font-size:0.88rem;color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Getting started</p>
+    <h1>Blanket Block Planner</h1>
+    <p class="standfirst">installing it, then using it</p>
+  </header>
+
+  <hr class="stitches">
+
+  <section class="part">
+    <p class="eyebrow">Part one &mdash; putting it on your phone</p>
+
+    <p><strong>Open this page on the phone you want the app on</strong>, then tap the button. If you are reading this on a computer, send yourself the link and open it on the phone instead.</p>
+
+    <a class="download" href="https://github.com/websterdr21-dev/blanket-block-planner/releases/latest/download/blanket-block-planner.apk">
+      Download the app
+      <small>Android 7 or newer &middot; about 5 MB</small>
+    </a>
+    <p class="under-btn">Nothing happens automatically &mdash; the phone will ask you a few things first.</p>
+
+    <p>The app doesn't come from the Play Store, so your phone asks whether you're sure a few times along the way. That's normal. The wording below is roughly what you'll see; your phone may put it slightly differently.</p>
+
+    <p><strong>You only do this once.</strong> After that it's an app on your phone like any other.</p>
+
+    <ol class="steps">
+      <li>
+        <div class="body">
+          <h3>Keep the download</h3>
+          <div class="screen">
+            <span class="said">Your phone will say something like</span>
+            <q>This type of file can harm your device. Do you want to keep blanket-block-planner.apk anyway?</q>
+            <span class="then">Tap <span class="tap">Download anyway</span>, or <span class="tap">OK</span>. Your phone says this about anything that didn't come from the Play Store &mdash; it hasn't found anything wrong.</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="body">
+          <h3>Open the downloaded file</h3>
+          <p>When it finishes, a notification appears saying the download is complete. Tap it.</p>
+          <p>If you've already swiped that away, open the <strong>Files</strong> app (or <strong>My Files</strong> on a Samsung), go to <strong>Downloads</strong>, and tap <strong>blanket-block-planner.apk</strong>.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="body">
+          <h3>Let this one app be installed</h3>
+          <div class="screen">
+            <span class="said">Your phone will say something like</span>
+            <q>For your security, your phone currently isn't allowed to install unknown apps from this source.</q>
+            <span class="then">Tap <span class="tap">Settings</span> on that message. A switch appears called <span class="tap">Allow from this source</span> &mdash; turn it on. Then press the <span class="tap">back</span> arrow.</span>
+          </div>
+          <p>This only applies to whichever app you downloaded from, usually Chrome, and you can switch it back off afterwards if you'd rather.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="body">
+          <h3>Install</h3>
+          <p>You should be back on a screen showing <strong>Blanket Block Planner</strong> with an <span class="tap">Install</span> button. Tap it.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="body">
+          <h3>Get past the last warning</h3>
+          <div class="screen">
+            <span class="said">Play Protect may say</span>
+            <q>Unsafe app blocked</q>, or <q>This app wasn't scanned by Play Protect.</q>
+            <span class="then">Tap <span class="tap">More details</span>, then <span class="tap">Install anyway</span>. If it offers to <span class="tap">Send app for scanning</span>, you can choose <span class="tap">Don't send</span>.</span>
+          </div>
+          <p>Google says this about anything it hasn't seen in the Play Store before. It isn't a virus warning.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="body">
+          <h3>Open it</h3>
+          <p>Tap <span class="tap">Open</span>, or find <strong>Blanket Block Planner</strong> with your other apps &mdash; the icon is <strong>nine little coloured squares on a dark blue background</strong>. Hold it and drag it onto your home screen so it's easy to find next time.</p>
+          <p>Be on wifi the very first time you open it, so it can check for anything newer. After that it works with no signal at all.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="note">
+      <h3>If you opened this from WhatsApp</h3>
+      <p>WhatsApp's own little browser sometimes won't download the file. Tap the <span class="tap">three dots</span> in the corner and choose <span class="tap">Open in browser</span>, then use the button again.</p>
+    </div>
+  </section>
+
+  <hr class="stitches">
+
+  <section class="part">
+    <p class="eyebrow">Part two &mdash; using it</p>
+
+    <div>
+      <h2>What it does</h2>
+      <p>You photograph each of your blocks and say how many of each you've made. It works out an arrangement and shows you the whole blanket before you sew a stitch of it together.</p>
+      <div class="swatch" aria-hidden="true">
+        <div class="c1"></div><div class="c2"></div><div class="c4"></div><div class="c3"></div><div class="c1"></div>
+        <div class="c3"></div><div class="c4"></div><div class="c1"></div><div class="c2"></div><div class="c4"></div>
+        <div class="c2"></div><div class="c1"></div><div class="c3"></div><div class="c4"></div><div class="c3"></div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <div class="body">
+          <h3>Get your blocks in</h3>
+          <p><span class="btn">Take a photo</span> opens the camera for one block at a time. <span class="btn">Choose from gallery</span> lets you tick several photos you've already taken and bring them in at once.</p>
+          <p>You only need <strong>one photo of each different pattern</strong>, not one per block. Made twelve of the navy rose? Photograph it once, and type 12 in a moment.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Let it draw each one</h3>
+          <p>It says <em>drawing a clean version of this block&hellip;</em> for a second or two, then the photo becomes a neat flat drawing. That drawing is what you'll see in the finished plan.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Name them and count them</h3>
+          <p>Give each a name you'll recognise &mdash; <span class="hand">navy rose, green centre</span> &mdash; and type how many you've finished. If most have the same count, type it once under <strong>Set qty for all</strong>, tap <span class="btn">Apply to all</span>, then fix the odd ones.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Add them, then set the size</h3>
+          <p>Tap <span class="btn">Add to blanket</span>. Then put in rows and columns, or tap <span class="btn">Auto-suggest size</span> and it picks a sensible shape. The line underneath tells you if blocks will be <strong>left over</strong>, or <strong>cells left empty</strong>.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Pick the look you want</h3>
+          <p>Under <strong>Pattern style</strong> there are six ways to arrange the same blocks:</p>
+          <ul class="plain">
+            <li><strong>Scattered</strong> &mdash; all mixed up, with no two of the same touching.</li>
+            <li><strong>Stripes</strong> &mdash; a different pattern along each row.</li>
+            <li><strong>Diagonals</strong> &mdash; patterns running corner to corner.</li>
+            <li><strong>Checkerboard</strong> &mdash; alternating, like a chessboard.</li>
+            <li><strong>Framed</strong> &mdash; one pattern all the way round the edge, the rest inside.</li>
+            <li><strong>Rings</strong> &mdash; rings working inwards from the outside.</li>
+          </ul>
+          <p style="margin-top:12px;">Try them all. Changing it and tapping generate again costs nothing.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Generate the layout</h3>
+          <p>Tap <span class="btn">Generate layout</span>. The grid shows where each block goes, with a list underneath naming each one. Don't like the arrangement? Tap it again.</p>
+          <p>The line below the grid tells you how it got on. On <strong>Scattered</strong> it says whether it kept every matching pair apart. On the others it says how many squares follow the pattern &mdash; if you haven't quite enough of one block it fills the rest in with what's left, rather than giving up.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <hr class="stitches">
+
+  <section class="part">
+    <div>
+      <h2>Taking a good photo</h2>
+      <ul class="shots">
+        <li><span class="tick">Do</span><span>Lay the block flat, hold the phone straight above it.</span></li>
+        <li><span class="tick">Do</span><span>Put it on something plain, in a different colour from the block.</span></li>
+        <li><span class="tick">Do</span><span>Get the whole block in, with a little space around all four edges.</span></li>
+        <li><span class="tick">Do</span><span>Use daylight where you can.</span></li>
+        <li><span class="cross">Skip</span><span>Your own shadow falling across the block.</span></li>
+        <li><span class="cross">Skip</span><span>A busy tablecloth, or a background the same colour as the block.</span></li>
+      </ul>
+      <p style="margin-top:14px;">A loose tail of yarn hanging off the block is fine &mdash; it knows to ignore those.</p>
+    </div>
+
+    <div class="note">
+      <h3>It remembers where you left off</h3>
+      <p>Close the app whenever you like. Next time you open it, your blocks, the size you chose and the last layout it worked out are all still there. Nothing is sent anywhere &mdash; it's all kept on the phone.</p>
+      <p style="margin-top:10px;">When you want to start a fresh blanket, tap <span class="tap">Start a new blanket</span> underneath your list of blocks.</p>
+    </div>
+
+    <div class="note">
+      <h3>If it says blocks are touching</h3>
+      <p>On the <strong>Scattered</strong> style it sometimes says it couldn't keep every matching pair apart. Not a fault &mdash; the numbers make it impossible, usually because one pattern makes up too much of the blanket. Tap generate again, or make a couple more of a different block.</p>
+      <p style="margin-top:10px;">On the other five styles, matching blocks sitting next to each other is the whole point, so it doesn't mention it.</p>
+    </div>
+  </section>
+
+  <hr class="stitches">
+
+  <section class="part">
+    <p class="eyebrow">For Dylan</p>
+
+    <div class="card">
+      <h3>The link to send</h3>
+      <p>This page, which carries the download button:</p>
+      <code class="cmd">https://websterdr21-dev.github.io/blanket-block-planner/</code>
+      <p style="margin-top:12px;">The button points at <code>releases/latest/download/blanket-block-planner.apk</code>, which always resolves to the newest release. Both links are permanent &mdash; send them once.</p>
+    </div>
+
+    <div class="card">
+      <h3>Sending changes later</h3>
+      <p>You almost never send another APK. Edit <code>www/index.html</code>, commit, then:</p>
+      <code class="cmd">powershell -File publish-update.ps1</code>
+      <p style="margin-top:12px;">Her app checks on launch, downloads in the background, and runs the new version next time she opens it. She needs signal for that check only.</p>
+      <p style="margin-top:12px;">A new APK is only needed for a native change &mdash; a plugin, or the icon. Then rebuild and upload it under the same filename so the link keeps working:</p>
+      <code class="cmd">gh release create v1.1 blanket-block-planner.apk</code>
+    </div>
+  </section>
+
+  <footer>
+    <p>Blanket Block Planner &mdash; photos are traced on the phone itself. No account, no internet needed to use it, nothing uploaded anywhere.</p>
+  </footer>
+
+</div>
+</body>
+</html>
