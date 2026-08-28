@@ -49,7 +49,22 @@ the launch after that. No new APK, no new link.
 Requires GitHub Pages to be enabled on this repo (source: `main` branch,
 `/docs` folder), which requires the repo to be public.
 
-A new APK is only needed if a native plugin is added or removed.
+A new APK is only needed if a native plugin is added or removed, or the icon
+changes. When that happens the bundle must not run on the old APK, so bump
+`versionCode` in `android/app/build.gradle`, rebuild, and publish with a
+matching floor:
+
+```bash
+powershell -File publish-update.ps1 -MinVersionCode 2
+```
+
+That writes `minVersionCode` into the manifest. On launch the app compares it
+against its own `versionCode`: if the installed APK is older it shows a notice
+linking to the download page and **skips staging the bundle entirely**, since a
+bundle expecting native code the app does not have would crash it. The floor is
+carried forward by later publishes, so a routine update never silently lowers
+it. If the manifest has no floor, or the version cannot be read, the app never
+nags.
 
 **Always publish a bundle straight after building an APK.** The app has no way
 to tell whether the manifest is older or newer than the code baked into the

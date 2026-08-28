@@ -409,7 +409,10 @@
       <p>You almost never send another APK. Edit <code>www/index.html</code>, commit, then:</p>
       <code class="cmd">powershell -File publish-update.ps1</code>
       <p style="margin-top:12px;">Her app checks on launch, downloads in the background, and runs the new version next time she opens it. She needs signal for that check only.</p>
-      <p style="margin-top:12px;">A new APK is only needed for a native change &mdash; a plugin, or the icon. Then rebuild and upload it under the same filename so the link keeps working:</p>
+      <p style="margin-top:12px;">A new APK is only needed for a native change &mdash; a plugin, or the icon. Bump <code>versionCode</code> in <code>android/app/build.gradle</code>, rebuild, then publish the bundle with a matching floor:</p>
+      <code class="cmd">powershell -File publish-update.ps1 -MinVersionCode 2</code>
+      <p style="margin-top:12px;">Her app compares that against the APK she has. If hers is older it shows a notice pointing back at this page, and refuses to apply the bundle until she has installed the new one &mdash; an old app running a bundle that expects new native code would just crash.</p>
+      <p style="margin-top:12px;">Upload the APK under the same filename so the download link keeps working:</p>
       <code class="cmd">gh release create v1.1 blanket-block-planner.apk</code>
     </div>
   </section>

@@ -166,10 +166,40 @@
   .legend-item{display:flex;align-items:center;gap:6px;font-size:0.82rem;}
   .legend-item img{width:22px;height:22px;border-radius:4px;object-fit:cover;border:1px solid var(--wool-cream-dim);}
   .result-note{font-size:0.9rem;margin-top:14px;}
+
+  .reinstall{
+    background:var(--berry);
+    color:var(--wool-cream);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:22px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.3);
+  }
+  .reinstall h2{
+    font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;
+    margin:0 0 8px;color:#fff;
+  }
+  .reinstall p{margin:0 0 14px;font-size:0.95rem;}
+  .reinstall-link{
+    display:block;text-align:center;text-decoration:none;
+    background:var(--wool-cream);color:var(--berry-dark);
+    font-weight:700;font-size:1.05rem;
+    padding:16px;border-radius:10px;min-height:48px;
+  }
+  .reinstall-small{
+    font-size:0.85rem;opacity:0.9;margin:12px 0 0 !important;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="reinstall" id="reinstallNotice" style="display:none;">
+    <h2>A new version needs installing</h2>
+    <p>Part of this update is built into the app itself, so it can't arrive on its own like the others do.</p>
+    <a class="reinstall-link" id="reinstallLink" href="https://websterdr21-dev.github.io/blanket-block-planner/">Get the new version</a>
+    <p class="reinstall-small">Install it straight over the top &mdash; don't uninstall this one first, or you'll lose the blocks you've added. You can carry on using the app in the meantime.</p>
+  </div>
+
   <header>
     <h1>Blanket Block Planner</h1>
     <p class="tagline">upload your blocks, tell it how many, let it figure out the order</p>
@@ -1140,6 +1170,25 @@ updateTotals();
 const UPDATE_MANIFEST_URL =
   'https://websterdr21-dev.github.io/blanket-block-planner/live/manifest.json';
 
+/* Some changes cannot travel as a live update: a new plugin, or the launcher
+   icon. When that happens the manifest raises minVersionCode above what the
+   installed APK reports, and she is told to install a new one. The bundle is
+   deliberately NOT staged in that case - it may expect native code this build
+   does not have, and applying it would break a working app. */
+function needsNewApp(installedVersionCode, requiredVersionCode){
+  const installed = parseInt(installedVersionCode, 10);
+  const required = parseInt(requiredVersionCode, 10);
+  if(!isFinite(required) || required <= 0) return false;   // nothing demanded
+  if(!isFinite(installed)) return false;                   // cannot tell, don't nag
+  return installed < required;
+}
+
+function showReinstallNotice(url){
+  const notice = document.getElementById('reinstallNotice');
+  if(url) document.getElementById('reinstallLink').href = url;
+  notice.style.display = 'block';
+}
+
 async function checkForUpdate(){
   const cap = window.Capacitor;
   const LiveUpdate = cap && cap.Plugins && cap.Plugins.LiveUpdate;
@@ -1154,6 +1203,18 @@ async function checkForUpdate(){
     const res = await fetch(UPDATE_MANIFEST_URL + '?t=' + Date.now(), { cache: 'no-store' });
     if(!res.ok) return;
     const manifest = await res.json();
+
+    let installedVersion = null;
+    try{
+      installedVersion = (await LiveUpdate.getVersionCode()).versionCode;
+    }catch(err){
+      console.warn('Could not read the installed app version.', err);
+    }
+    if(needsNewApp(installedVersion, manifest.minVersionCode)){
+      showReinstallNotice(manifest.appPageUrl);
+      return;
+    }
+
     if(!manifest.bundleId || !manifest.url) return;
 
     const current = await LiveUpdate.getCurrentBundle();
