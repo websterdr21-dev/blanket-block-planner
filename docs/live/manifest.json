@@ -1,5 +1,7 @@
 {
-    "bundleId":  "2026-08-27-6-patterns",
-    "url":  "https://websterdr21-dev.github.io/blanket-block-planner/live/2026-08-27-6-patterns.zip",
-    "checksum":  "9d07db6b7341bdb8330764f66aaf3393f08531ddd76d4b934055bcd7adb0c14b"
+    "bundleId":  "2026-08-28-1-native-notice",
+    "url":  "https://websterdr21-dev.github.io/blanket-block-planner/live/2026-08-28-1-native-notice.zip",
+    "checksum":  "908beb104bca216de537ea9ddae85488dd36e3b93b841f7965adc40f7596762d",
+    "minVersionCode":  1,
+    "appPageUrl":  "https://websterdr21-dev.github.io/blanket-block-planner/"
 }
