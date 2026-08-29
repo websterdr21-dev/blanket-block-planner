@@ -1159,8 +1159,8 @@ function queueTrace(job){
 }
 
 function addPhotoFiles(input){
-  const files = Array.from(input.files);
-  input.value = '';
+  const files = Array.from(input.files || []);
+  if('value' in input) input.value = '';
   files.forEach(file => {
     const item = {
       tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
@@ -1195,10 +1195,63 @@ function addPhotoFiles(input){
   });
 }
 
+/* Her phone saves photos as HEIC, and Chromium cannot decode HEIC at all - not
+   in an <img>, not in createImageBitmap. Android can, and always could, so the
+   picking goes through the platform instead of through the WebView. The Camera
+   plugin re-encodes what it hands back, so what arrives here is a JPEG.
+
+   The plain file inputs stay as the fallback for a browser, where the plugin
+   does not exist. */
+function nativeCamera(){
+  const cap = window.Capacitor;
+  const plugin = cap && cap.Plugins && cap.Plugins.Camera;
+  return (plugin && cap.isNativePlatform && cap.isNativePlatform()) ? plugin : null;
+}
+
+async function addFromNative(mode){
+  const Camera = nativeCamera();
+  if(!Camera) return false;
+  try{
+    let paths = [];
+    if(mode === 'camera'){
+      const photo = await Camera.getPhoto({
+        source: 'CAMERA', resultType: 'uri',
+        quality: 90, correctOrientation: true, saveToGallery: false
+      });
+      if(photo && photo.webPath) paths = [photo.webPath];
+    }else{
+      const picked = await Camera.pickImages({ quality: 90, correctOrientation: true });
+      paths = (picked && picked.photos || []).map(x => x.webPath).filter(Boolean);
+    }
+    if(!paths.length) return true;                 // she backed out; nothing to do
+
+    const files = [];
+    for(let i=0; i<paths.length; i++){
+      const res = await fetch(paths[i]);
+      const blob = await res.blob();
+      files.push(new File([blob], 'block ' + (blocks.length + files.length + 1) + '.jpg',
+                          { type: blob.type || 'image/jpeg' }));
+    }
+    addPhotoFiles({ files, value: '' });
+    return true;
+  }catch(err){
+    const msg = String(err && (err.message || err));
+    /* Backing out of the picker is reported as an error; that is not a fault. */
+    if(/cancel/i.test(msg)) return true;
+    console.warn('Could not pick photos through Android.', err);
+    return false;
+  }
+}
+
 blockPhotosInput.addEventListener('change', () => addPhotoFiles(blockPhotosInput));
 blockCameraInput.addEventListener('change', () => addPhotoFiles(blockCameraInput));
-$('takePhotoBtn').addEventListener('click', () => blockCameraInput.click());
-$('pickPhotosBtn').addEventListener('click', () => blockPhotosInput.click());
+
+$('takePhotoBtn').addEventListener('click', async () => {
+  if(!(await addFromNative('camera'))) blockCameraInput.click();
+});
+$('pickPhotosBtn').addEventListener('click', async () => {
+  if(!(await addFromNative('gallery'))) blockPhotosInput.click();
+});
 
 /* Patch the one row in place: a full re-render would wipe out whatever she
    happens to be typing into a name field at the time. */
@@ -1771,6 +1824,7 @@ async function renderDiagnostics(){
   try{ savedKB = Math.round((localStorage.getItem(SAVE_KEY) || '').length / 1024); }catch(err){}
   lines.push('saved size: ' + savedKB + 'KB');
   lines.push('createImageBitmap: ' + (window.createImageBitmap ? 'yes' : 'no'));
+  lines.push('android picker: ' + (nativeCamera() ? 'yes' : 'no (using the browser one)'));
   if(lastFailure) lines.push('last failure: ' + lastFailure);
   lines.push('layout: ' + (lastResult ? lastResult.rows + 'x' + lastResult.cols : 'none'));
 
