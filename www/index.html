@@ -1006,6 +1006,34 @@ function loadState(){
    createImageBitmap takes the File directly and builds no string at all. Where
    it is unavailable, a blob: URL is a short handle to the same bytes rather
    than a copy of them. */
+/* When a picture will not open, say exactly what it was. The first bytes of a
+   file name its real format regardless of what the extension claims. */
+let lastFailure = null;
+
+async function describeFile(file, err){
+  if(!file) return 'no file';
+  const bits = [file.name || '(no name)',
+                (file.type || 'no type'),
+                Math.round(file.size/1024) + 'KB'];
+  try{
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    const hex = Array.from(head).map(b => b.toString(16).padStart(2,'0')).join('');
+    const ascii = Array.from(head).map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('');
+    let kind = 'unknown';
+    if(hex.startsWith('ffd8ff')) kind = 'JPEG';
+    else if(hex.startsWith('89504e47')) kind = 'PNG';
+    else if(ascii.slice(4,8) === 'ftyp') kind = 'HEIC/HEIF (' + ascii.slice(8,12) + ')';
+    else if(ascii.startsWith('RIFF')) kind = 'WEBP';
+    else if(hex.startsWith('4949') || hex.startsWith('4d4d')) kind = 'TIFF/DNG';
+    bits.push('actually ' + kind);
+    bits.push(hex.slice(0,24));
+  }catch(e){
+    bits.push('could not read bytes: ' + (e && e.name));
+  }
+  bits.push(err ? String(err.name || err.message || err).slice(0,40) : 'no error');
+  return bits.join(' · ');
+}
+
 async function decodePicture(file){
   if(window.createImageBitmap){
     try{ return await createImageBitmap(file); }
@@ -1157,6 +1185,8 @@ function addPhotoFiles(input){
       }catch(err){
         console.warn('This phone could not open that photo.', err);
         item.failed = true;
+        item.why = await describeFile(item.file, err);
+        lastFailure = item.why;
       }
       item.file = null;          // release the handle either way
       item.tracing = false;
@@ -1194,7 +1224,7 @@ function refreshPendingRow(item){
     row.classList.add('failed');
     const msg = document.createElement('span');
     msg.className = 'trace-note failed-note';
-    msg.textContent = 'This phone could not open that picture. Take it again with the camera button.';
+    msg.textContent = 'Could not open this picture. ' + (item.why || '');
     row.appendChild(msg);
     return;
   }
@@ -1214,7 +1244,7 @@ function renderPendingList(){
       '<input type="number" min="1" value="' + p.qty + '">' +
       '<button class="link" title="Remove">Remove</button>' +
       (p.tracing ? '<span class="trace-note">drawing a clean version of this block…</span>' : '') +
-      (p.failed ? '<span class="trace-note failed-note">This phone could not open that picture. Take it again with the camera button.</span>' : '');
+      (p.failed ? '<span class="trace-note failed-note">Could not open this picture. ' + escapeHtml(p.why || '') + '</span>' : '');
     const [nameEl, qtyEl] = row.querySelectorAll('input');
     nameEl.addEventListener('input', () => { p.name = nameEl.value; });
     qtyEl.addEventListener('input', () => { p.qty = parseInt(qtyEl.value,10) || 1; });
@@ -1741,6 +1771,7 @@ async function renderDiagnostics(){
   try{ savedKB = Math.round((localStorage.getItem(SAVE_KEY) || '').length / 1024); }catch(err){}
   lines.push('saved size: ' + savedKB + 'KB');
   lines.push('createImageBitmap: ' + (window.createImageBitmap ? 'yes' : 'no'));
+  if(lastFailure) lines.push('last failure: ' + lastFailure);
   lines.push('layout: ' + (lastResult ? lastResult.rows + 'x' + lastResult.cols : 'none'));
 
   const b = blocks[0];
