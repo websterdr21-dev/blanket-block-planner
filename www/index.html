@@ -85,6 +85,7 @@
 
   .photo-sources{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
   .photo-sources button{flex:1;min-width:140px;}
+  .picking-status{margin:14px 0 0;font-size:0.92rem;font-weight:600;color:var(--berry-dark);}
 
   .pending-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
   .pending-item{
@@ -271,6 +272,7 @@
       <input type="file" id="blockCamera" accept="image/*" capture="environment" hidden>
       <input type="file" id="blockPhotos" accept="image/*" multiple hidden>
 
+      <p class="picking-status" id="pickingStatus" hidden></p>
       <div class="pending-list" id="pendingList"></div>
 
       <div class="bulk-row" id="bulkQtyRow" style="display:none;">
@@ -283,6 +285,7 @@
       <button class="primary" id="addAllBtn" style="display:none;margin-top:12px;">Add to blanket</button>
     </div>
 
+    <p class="totals" id="blocksSummary" style="margin:0 0 12px;"></p>
     <div class="block-grid" id="blockGrid"></div>
     <p class="empty-note" id="emptyNote">No blocks yet. Take a photo of your first one above.</p>
     <p class="empty-note warn" id="saveWarn" style="display:none;">There are too many blocks to save. Your work will be lost when the app closes, so screenshot a layout you want to keep.</p>
@@ -1202,6 +1205,22 @@ function addPhotoFiles(input){
 
    The plain file inputs stay as the fallback for a browser, where the plugin
    does not exist. */
+let picking = false;
+
+function setPickingStatus(text){
+  const el = $('pickingStatus');
+  if(!el) return;
+  el.textContent = text || '';
+  el.hidden = !text;
+}
+
+function setPickingBusy(busy){
+  picking = busy;
+  $('takePhotoBtn').disabled = busy;
+  $('pickPhotosBtn').disabled = busy;
+  if(!busy) setPickingStatus('');
+}
+
 function nativeCamera(){
   const cap = window.Capacitor;
   const plugin = cap && cap.Plugins && cap.Plugins.Camera;
@@ -1225,14 +1244,17 @@ async function addFromNative(mode){
     }
     if(!paths.length) return true;                 // she backed out; nothing to do
 
-    const files = [];
+    /* Hand each photo over the moment it arrives. Collecting all twenty-five
+       first meant a long silent pause with nothing on screen, so she pressed
+       the button again and everything went in twice. */
     for(let i=0; i<paths.length; i++){
+      setPickingStatus('Getting your photos… ' + (i+1) + ' of ' + paths.length);
       const res = await fetch(paths[i]);
       const blob = await res.blob();
-      files.push(new File([blob], 'block ' + (blocks.length + files.length + 1) + '.jpg',
-                          { type: blob.type || 'image/jpeg' }));
+      const file = new File([blob], 'block ' + (blocks.length + pending.length + 1) + '.jpg',
+                            { type: blob.type || 'image/jpeg' });
+      addPhotoFiles({ files: [file] });
     }
-    addPhotoFiles({ files, value: '' });
     return true;
   }catch(err){
     const msg = String(err && (err.message || err));
@@ -1246,12 +1268,18 @@ async function addFromNative(mode){
 blockPhotosInput.addEventListener('change', () => addPhotoFiles(blockPhotosInput));
 blockCameraInput.addEventListener('change', () => addPhotoFiles(blockCameraInput));
 
-$('takePhotoBtn').addEventListener('click', async () => {
-  if(!(await addFromNative('camera'))) blockCameraInput.click();
-});
-$('pickPhotosBtn').addEventListener('click', async () => {
-  if(!(await addFromNative('gallery'))) blockPhotosInput.click();
-});
+async function startPicking(mode, fallbackInput){
+  if(picking) return;                    // a second press must not add them again
+  setPickingBusy(true);
+  try{
+    if(!(await addFromNative(mode))) fallbackInput.click();
+  }finally{
+    setPickingBusy(false);
+  }
+}
+
+$('takePhotoBtn').addEventListener('click', () => startPicking('camera', blockCameraInput));
+$('pickPhotosBtn').addEventListener('click', () => startPicking('gallery', blockPhotosInput));
 
 /* Patch the one row in place: a full re-render would wipe out whatever she
    happens to be typing into a name field at the time. */
@@ -1347,6 +1375,13 @@ $('addAllBtn').addEventListener('click', () => {
 });
 
 function renderBlockList(){
+  const summary = $('blocksSummary');
+  if(summary){
+    summary.innerHTML = blocks.length
+      ? '<strong>' + blocks.length + '</strong> pattern' + (blocks.length===1?'':'s') +
+        ' · <strong>' + totalBlocks() + '</strong> square' + (totalBlocks()===1?'':'s') + ' in total'
+      : '';
+  }
   blockGridEl.innerHTML = '';
   $('emptyNote').style.display = blocks.length ? 'none' : 'block';
   $('clearAllBtn').style.display = blocks.length ? 'block' : 'none';
@@ -1449,7 +1484,8 @@ function updateTotals(){
   const rows = parseInt(rowsInput.value,10) || 0;
   const cols = parseInt(colsInput.value,10) || 0;
   const capacity = rows * cols;
-  let msg = '<strong>' + total + '</strong> block' + (total===1?'':'s') +
+  let msg = '<strong>' + blocks.length + '</strong> pattern' + (blocks.length===1?'':'s') +
+            ' · <strong>' + total + '</strong> square' + (total===1?'':'s') + ' to place' +
             ' · grid holds <strong>' + capacity + '</strong>.';
   if(capacity < total){
     const n = total - capacity;
