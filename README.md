@@ -73,6 +73,14 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Photos are decoded from the `File`, never through a data URL.** This was
+  the bug that broke it on a real phone while every desktop test passed.
+  `FileReader.readAsDataURL` turns a 4MB photo into a ~5.5MB `data:` string,
+  and Android's WebView refuses to load data URLs at that size, so every photo
+  failed. `createImageBitmap(file)` builds no string at all; a blob: URL is the
+  fallback. Both working copies are canvas output, so what gets stored and
+  drawn is always a JPEG this WebView can render. Verified with 25 photos:
+  7.5MB of source in, 25 traced, 0 failures, 1.6MB saved.
 - **Photos are re-encoded through a canvas on the way in.** Phones save
   pictures in formats their own WebView cannot draw - HEIC on recent Samsungs
   above all - and the gallery hands them over untouched. Tracing failed, the

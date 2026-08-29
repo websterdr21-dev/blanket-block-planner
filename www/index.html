@@ -94,6 +94,8 @@
   }
   .pending-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;}
   .pending-item.tracing img{opacity:0.45;}
+  .thumb-pending{width:56px;height:56px;border-radius:8px;flex-shrink:0;
+                 background:var(--wool-cream-dim);}
   .pending-item.failed{border-color:var(--berry);border-style:solid;}
   .pending-item.failed img{opacity:0.3;}
   .failed-note{color:var(--berry-dark) !important;font-style:normal !important;font-weight:600;}
@@ -122,6 +124,7 @@
   .block-card input[type="number"]{width:72px;min-height:44px;padding:8px 10px;}
   .block-card .made{font-size:0.8rem;color:var(--sage);}
   .block-card .art-broken{font-size:0.8rem;color:var(--berry-dark);font-weight:600;line-height:1.3;}
+  .thumb-empty{background:repeating-linear-gradient(45deg,#fff,#fff 8px,var(--wool-cream-dim) 8px,var(--wool-cream-dim) 16px);}
   .block-card .remove{align-self:flex-start;background:none;color:var(--berry-dark);
     text-decoration:underline;font-size:0.85rem;padding:6px 2px;min-height:auto;font-weight:500;}
 
@@ -883,7 +886,7 @@ function escapeHtml(s){
 /* ---------------------------------------------------------------------------
    State
    --------------------------------------------------------------------------- */
-let blocks = [];        // {id, name, qty, displayUrl, photoDataUrl, edgeColour}
+let blocks = [];        // {id, name, qty, displayUrl, photoThumb, edgeColour, artBroken}
 let pending = [];       // {tempId, dataUrl, displayUrl, name, qty, tracing}
 let userEditedGrid = false;
 let lastResult = null;
@@ -957,12 +960,21 @@ function loadState(){
   catch(err){ console.warn('Could not read saved blocks.', err); return; }
   if(!saved || !Array.isArray(saved.blocks) || !saved.blocks.length) return;
 
-  blocks = saved.blocks.map(b => ({
-    id:b.id, name:b.name, qty:b.qty,
-    displayUrl:b.displayUrl, photoDataUrl:b.displayUrl,
-    edgeColour: b.edgeColour || null,
-    photoThumb: b.photoThumb || null
-  }));
+  /* A block saved by a version that could not trace the photo carries the raw
+     camera file as its picture. Trying to draw twenty-five of those is what
+     brought her phone down, so they are dropped on the way in and the card says
+     what happened rather than showing a broken icon. */
+  blocks = saved.blocks.map(b => {
+    const art = b.displayUrl || '';
+    const unusable = !art.startsWith('data:image/svg') && art.length > MAX_SANE_ART_BYTES;
+    return {
+      id:b.id, name:b.name, qty:b.qty,
+      displayUrl: unusable ? null : art,
+      edgeColour: b.edgeColour || null,
+      photoThumb: unusable ? null : (b.photoThumb || null),
+      artBroken: unusable
+    };
+  });
   if(saved.rows) rowsInput.value = saved.rows;
   if(saved.cols) colsInput.value = saved.cols;
   userEditedGrid = !!saved.userEditedGrid;
@@ -983,10 +995,47 @@ function loadState(){
 /* ---------------------------------------------------------------------------
    Adding photos
    --------------------------------------------------------------------------- */
-function readAsDataUrl(file, cb){
-  const reader = new FileReader();
-  reader.onload = e => cb(e.target.result);
-  reader.readAsDataURL(file);
+/* Decode a picture the phone just handed us.
+
+   The obvious route - FileReader.readAsDataURL, then set that on an <img> - is
+   what broke this on her phone. A 4MB photo becomes a ~5.5MB "data:" string,
+   and Android's WebView refuses to load data URLs anywhere near that size, so
+   every single photo failed while desktop Chrome, which has no such limit,
+   passed every test I ran.
+
+   createImageBitmap takes the File directly and builds no string at all. Where
+   it is unavailable, a blob: URL is a short handle to the same bytes rather
+   than a copy of them. */
+async function decodePicture(file){
+  if(window.createImageBitmap){
+    try{ return await createImageBitmap(file); }
+    catch(err){ /* some formats it will not take; try the img route */ }
+  }
+  const url = URL.createObjectURL(file);
+  try{
+    return await loadImage(url);
+  }finally{
+    URL.revokeObjectURL(url);
+  }
+}
+
+function sizeOf(drawable){
+  return {
+    w: drawable.naturalWidth || drawable.width,
+    h: drawable.naturalHeight || drawable.height
+  };
+}
+
+function drawToJpeg(drawable, maxPx, quality){
+  const { w: sw, h: sh } = sizeOf(drawable);
+  if(!sw || !sh) throw new Error('empty image');
+  const scale = Math.min(1, maxPx / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(drawable, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', quality);
 }
 function guessNameFromFile(file){
   return file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
@@ -1035,30 +1084,11 @@ const PHOTO_MAX_PX = 900;
 /* The guide shows a block at about 120px on a phone, so 360 is already twice
    what a high-density screen needs. Keeping the full 900px photo instead would
    be ~240KB a block, and a dozen of those would not fit in the save. */
-const GUIDE_PHOTO_PX = 360;
-
-async function shrinkPhoto(dataUrl, maxPx, quality){
-  const img = await loadImage(dataUrl);
-  const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-  return canvas.toDataURL('image/jpeg', quality);
-}
-
-async function normalisePhoto(dataUrl){
-  const img = await loadImage(dataUrl);          // throws on a format it can't read
-  if(!img.naturalWidth || !img.naturalHeight) throw new Error('empty image');
-  const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-  return canvas.toDataURL('image/jpeg', 0.85);
-}
+const GUIDE_PHOTO_PX = 300;
+/* Art bigger than this is not something we ever produce: it is a raw camera
+   photo saved by a version that failed to trace it. Twenty-five of those
+   reloaded on every launch is what broke her phone. */
+const MAX_SANE_ART_BYTES = 400 * 1024;
 
 async function vectorize(dataUrl){
   await loadTracer();
@@ -1104,36 +1134,33 @@ function addPhotoFiles(input){
   const files = Array.from(input.files);
   input.value = '';
   files.forEach(file => {
-    readAsDataUrl(file, dataUrl => {
-      const item = {
-        tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
-        dataUrl, displayUrl: dataUrl,
-        name: guessNameFromFile(file), qty: 1, tracing: true, failed: false,
-        edgeColour: null, photoThumb: null
-      };
-      pending.push(item);
-      renderPendingList();
-      queueTrace(async () => {
-        try{
-          item.dataUrl = await normalisePhoto(item.dataUrl);
-          item.displayUrl = item.dataUrl;
-        }catch(err){
-          console.warn('This phone could not open that photo.', err);
-          item.failed = true;
-          item.tracing = false;
-          refreshPendingRow(item);
-          return;
-        }
-        try{
-          item.photoThumb = await shrinkPhoto(item.dataUrl, GUIDE_PHOTO_PX, 0.8);
-        }catch(err){
-          console.warn('Could not keep a photo for the guide.', err);
-        }
-        const traced = await vectorize(item.dataUrl);
+    const item = {
+      tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
+      file, displayUrl: null,
+      name: guessNameFromFile(file), qty: 1, tracing: true, failed: false,
+      edgeColour: null, photoThumb: null
+    };
+    pending.push(item);
+    renderPendingList();
+    queueTrace(async () => {
+      try{
+        const picture = await decodePicture(item.file);
+        /* One working copy for the tracer, one small one for the guide. Both
+           are canvas output, so both are JPEGs this WebView can always draw. */
+        const working = drawToJpeg(picture, PHOTO_MAX_PX, 0.85);
+        item.photoThumb = drawToJpeg(picture, GUIDE_PHOTO_PX, 0.75);
+        if(picture.close) picture.close();
+        item.displayUrl = working;
+
+        const traced = await vectorize(working);
         if(traced){ item.displayUrl = traced.url; item.edgeColour = traced.edgeColour; }
-        item.tracing = false;
-        refreshPendingRow(item);
-      });
+      }catch(err){
+        console.warn('This phone could not open that photo.', err);
+        item.failed = true;
+      }
+      item.file = null;          // release the handle either way
+      item.tracing = false;
+      refreshPendingRow(item);
     });
   });
 }
@@ -1151,6 +1178,18 @@ function refreshPendingRow(item){
   row.classList.remove('tracing');
   const note = row.querySelector('.trace-note');
   if(note) note.remove();
+  if(item.displayUrl){
+    const shown = row.querySelector('img');
+    if(shown) shown.src = item.displayUrl;
+    else {
+      const ph = row.querySelector('.thumb-pending');
+      if(ph){
+        const img = document.createElement('img');
+        img.src = item.displayUrl; img.alt = '';
+        ph.replaceWith(img);
+      }
+    }
+  }
   if(item.failed){
     row.classList.add('failed');
     const msg = document.createElement('span');
@@ -1159,7 +1198,6 @@ function refreshPendingRow(item){
     row.appendChild(msg);
     return;
   }
-  row.querySelector('img').src = item.displayUrl;
 }
 
 function renderPendingList(){
@@ -1171,7 +1209,7 @@ function renderPendingList(){
     row.className = 'pending-item' + (p.tracing ? ' tracing' : '') + (p.failed ? ' failed' : '');
     row.dataset.tempId = p.tempId;
     row.innerHTML =
-      '<img src="' + p.displayUrl + '" alt="">' +
+      (p.displayUrl ? '<img src="' + p.displayUrl + '" alt="">' : '<div class="thumb-pending"></div>') +
       '<input type="text" value="' + escapeHtml(p.name) + '" placeholder="Name this block">' +
       '<input type="number" min="1" value="' + p.qty + '">' +
       '<button class="link" title="Remove">Remove</button>' +
@@ -1213,7 +1251,7 @@ $('addAllBtn').addEventListener('click', () => {
     blocks.push({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
       name: p.name.trim(), qty: p.qty,
-      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl,
+      displayUrl: p.displayUrl,
       edgeColour: p.edgeColour, photoThumb: p.photoThumb
     });
   });
@@ -1233,8 +1271,11 @@ function renderBlockList(){
     const card = document.createElement('div');
     card.className = 'block-card';
     card.innerHTML =
-      '<div class="thumb"><img src="' + b.displayUrl + '" alt=""></div>' +
-      '<div class="art-broken" hidden>This picture will not show on this phone. Remove it and take it again.</div>' +
+      (b.displayUrl
+        ? '<div class="thumb"><img src="' + b.displayUrl + '" alt=""></div>'
+        : '<div class="thumb thumb-empty"></div>') +
+      '<div class="art-broken"' + (b.artBroken ? '' : ' hidden') + '>' +
+      'This picture could not be used. Remove this block and photograph it again.</div>' +
       '<div class="name">' + escapeHtml(b.name) + '</div>' +
       '<div class="qty-row"><input type="number" min="1" value="' + b.qty + '">' +
       '<span class="made">made</span></div>' +
@@ -1242,7 +1283,8 @@ function renderBlockList(){
     /* Art saved by an older version may be a format this phone cannot draw.
        Say so on the card rather than leaving her looking at a broken icon. */
     const thumbImg = card.querySelector('.thumb img');
-    thumbImg.addEventListener('error', () => {
+    if(thumbImg) thumbImg.addEventListener('error', () => {
+      b.artBroken = true;
       card.querySelector('.art-broken').hidden = false;
     });
     const qtyEl = card.querySelector('input');
@@ -1381,7 +1423,7 @@ function renderResult(result, rows, cols){
     cell.className = 'cell';
     cell.dataset.idx = idx;
     const b = id ? blockById(id) : null;
-    if(b){
+    if(b && b.displayUrl){
       const img = document.createElement('img');
       img.src = b.displayUrl; img.title = b.name; img.alt = b.name;
       cell.appendChild(img);
@@ -1396,7 +1438,7 @@ function renderResult(result, rows, cols){
   blocks.forEach(b => {
     const item = document.createElement('div');
     item.className = 'legend-item';
-    item.innerHTML = '<img src="' + b.displayUrl + '" alt="">' +
+    item.innerHTML = (b.displayUrl ? '<img src="' + b.displayUrl + '" alt="">' : '') +
       '<span>' + escapeHtml(b.name) + ': ' + (usedCounts[b.id] || 0) + '/' + b.qty + '</span>';
     legendEl.appendChild(item);
   });
@@ -1627,7 +1669,8 @@ function joinPiece(b, size){
   const d = document.createElement('div');
   d.className = 'join-piece';
   d.style.width = size + 'px'; d.style.height = size + 'px';
-  if(b) d.innerHTML = '<img src="' + guideArt(b) + '" alt="' + escapeHtml(b.name) + '">';
+  const art = guideArt(b);
+  if(art) d.innerHTML = '<img src="' + art + '" alt="' + escapeHtml(b.name) + '">';
   return d;
 }
 
@@ -1641,7 +1684,8 @@ function rowStrip(rowIndex, cols){
     const b = id ? blockById(id) : null;
     const sq = document.createElement('div');
     sq.className = 'sq';
-    if(b) sq.innerHTML = '<img src="' + guideArt(b) + '" alt="' + escapeHtml(b.name) + '">';
+    const sqArt = guideArt(b);
+    if(sqArt) sq.innerHTML = '<img src="' + sqArt + '" alt="' + escapeHtml(b.name) + '">';
     strip.appendChild(sq);
   }
   return strip;
@@ -1691,6 +1735,12 @@ async function renderDiagnostics(){
   lines.push('tracer: ' + (vt.mod ? 'loaded' : (anyDrawn ? 'loaded earlier' :
              (vt.loading ? 'FAILED to load' : 'not used yet'))));
   lines.push('blocks: ' + blocks.length);
+  const broken = blocks.filter(b => b.artBroken || !b.displayUrl).length;
+  if(broken) lines.push('blocks with unusable pictures: ' + broken + '  <-- tap Start a new blanket');
+  let savedKB = 0;
+  try{ savedKB = Math.round((localStorage.getItem(SAVE_KEY) || '').length / 1024); }catch(err){}
+  lines.push('saved size: ' + savedKB + 'KB');
+  lines.push('createImageBitmap: ' + (window.createImageBitmap ? 'yes' : 'no'));
   lines.push('layout: ' + (lastResult ? lastResult.rows + 'x' + lastResult.cols : 'none'));
 
   const b = blocks[0];
