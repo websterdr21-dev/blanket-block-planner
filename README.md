@@ -73,6 +73,15 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **Photos are re-encoded through a canvas on the way in.** Phones save
+  pictures in formats their own WebView cannot draw - HEIC on recent Samsungs
+  above all - and the gallery hands them over untouched. Tracing failed, the
+  code fell back to showing the original, and the original was the one thing
+  guaranteed not to render: every block came out as a broken-image icon with no
+  explanation. Decoding into an Image and redrawing yields a JPEG that always
+  displays, and shrinks a 4MB phone photo to ~240KB. A file the phone genuinely
+  cannot read is now reported on the row and skipped rather than added, and a
+  block already saved with unusable art says so on its card.
 - **No `aspect-ratio`.** Square cells use the padding-top trick instead.
   `aspect-ratio` needs Android WebView 88; on anything older every square
   collapses to no height, which looks exactly like the pictures failing to

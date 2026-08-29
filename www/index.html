@@ -94,6 +94,9 @@
   }
   .pending-item img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;}
   .pending-item.tracing img{opacity:0.45;}
+  .pending-item.failed{border-color:var(--berry);border-style:solid;}
+  .pending-item.failed img{opacity:0.3;}
+  .failed-note{color:var(--berry-dark) !important;font-style:normal !important;font-weight:600;}
   .pending-item input[type="text"]{flex:1;min-width:110px;width:auto;}
   .pending-item input[type="number"]{width:78px;}
   .trace-note{flex-basis:100%;font-size:0.82rem;color:var(--sage);font-style:italic;}
@@ -118,6 +121,7 @@
   .block-card .qty-row{display:flex;align-items:center;gap:8px;}
   .block-card input[type="number"]{width:72px;min-height:44px;padding:8px 10px;}
   .block-card .made{font-size:0.8rem;color:var(--sage);}
+  .block-card .art-broken{font-size:0.8rem;color:var(--berry-dark);font-weight:600;line-height:1.3;}
   .block-card .remove{align-self:flex-start;background:none;color:var(--berry-dark);
     text-decoration:underline;font-size:0.85rem;padding:6px 2px;min-height:auto;font-weight:500;}
 
@@ -1014,6 +1018,31 @@ function edgeColour(img, w, h){
     .map(n => n.toString(16).padStart(2,'0')).join('');
 }
 
+/* Re-encode the photo through a canvas before it is used or stored.
+
+   Phones save pictures in formats their own WebView cannot display - HEIC on
+   most recent Samsungs above all - and the gallery hands them over as-is. The
+   old code traced from the original and, when that failed, quietly fell back
+   to showing the original: the one thing guaranteed not to render. Every
+   picture came out as a broken-image icon with no explanation.
+
+   Decoding into an Image and re-drawing gives a JPEG the WebView can always
+   show, and shrinks a 4MB phone photo to something sane to keep. If the decode
+   throws, the phone genuinely cannot read that file and she is told so. */
+const PHOTO_MAX_PX = 900;
+
+async function normalisePhoto(dataUrl){
+  const img = await loadImage(dataUrl);          // throws on a format it can't read
+  if(!img.naturalWidth || !img.naturalHeight) throw new Error('empty image');
+  const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
 async function vectorize(dataUrl){
   await loadTracer();
   if(!vt.mod) return null;
@@ -1062,11 +1091,21 @@ function addPhotoFiles(input){
       const item = {
         tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
         dataUrl, displayUrl: dataUrl,
-        name: guessNameFromFile(file), qty: 1, tracing: true, edgeColour: null
+        name: guessNameFromFile(file), qty: 1, tracing: true, failed: false, edgeColour: null
       };
       pending.push(item);
       renderPendingList();
       queueTrace(async () => {
+        try{
+          item.dataUrl = await normalisePhoto(item.dataUrl);
+          item.displayUrl = item.dataUrl;
+        }catch(err){
+          console.warn('This phone could not open that photo.', err);
+          item.failed = true;
+          item.tracing = false;
+          refreshPendingRow(item);
+          return;
+        }
         const traced = await vectorize(item.dataUrl);
         if(traced){ item.displayUrl = traced.url; item.edgeColour = traced.edgeColour; }
         item.tracing = false;
@@ -1089,6 +1128,14 @@ function refreshPendingRow(item){
   row.classList.remove('tracing');
   const note = row.querySelector('.trace-note');
   if(note) note.remove();
+  if(item.failed){
+    row.classList.add('failed');
+    const msg = document.createElement('span');
+    msg.className = 'trace-note failed-note';
+    msg.textContent = 'This phone could not open that picture. Take it again with the camera button.';
+    row.appendChild(msg);
+    return;
+  }
   row.querySelector('img').src = item.displayUrl;
 }
 
@@ -1098,14 +1145,15 @@ function renderPendingList(){
   $('bulkQtyRow').style.display = pending.length ? 'flex' : 'none';
   pending.forEach(p => {
     const row = document.createElement('div');
-    row.className = 'pending-item' + (p.tracing ? ' tracing' : '');
+    row.className = 'pending-item' + (p.tracing ? ' tracing' : '') + (p.failed ? ' failed' : '');
     row.dataset.tempId = p.tempId;
     row.innerHTML =
       '<img src="' + p.displayUrl + '" alt="">' +
       '<input type="text" value="' + escapeHtml(p.name) + '" placeholder="Name this block">' +
       '<input type="number" min="1" value="' + p.qty + '">' +
       '<button class="link" title="Remove">Remove</button>' +
-      (p.tracing ? '<span class="trace-note">drawing a clean version of this block…</span>' : '');
+      (p.tracing ? '<span class="trace-note">drawing a clean version of this block…</span>' : '') +
+      (p.failed ? '<span class="trace-note failed-note">This phone could not open that picture. Take it again with the camera button.</span>' : '');
     const [nameEl, qtyEl] = row.querySelectorAll('input');
     nameEl.addEventListener('input', () => { p.name = nameEl.value; });
     qtyEl.addEventListener('input', () => { p.qty = parseInt(qtyEl.value,10) || 1; });
@@ -1125,10 +1173,19 @@ $('applyQtyBtn').addEventListener('click', () => {
 });
 
 $('addAllBtn').addEventListener('click', () => {
-  if(pending.some(p => !p.name.trim() || !p.qty || p.qty < 1)){
+  const usable = pending.filter(p => !p.failed);
+  if(!usable.length){
+    alert('None of those pictures could be opened on this phone. Try taking them again with the camera button.');
+    return;
+  }
+  if(usable.some(p => !p.name.trim() || !p.qty || p.qty < 1)){
     alert('Every photo needs a name and a quantity of at least 1 before adding.');
     return;
   }
+  if(usable.length < pending.length){
+    alert((pending.length - usable.length) + ' picture(s) could not be opened and will be skipped.');
+  }
+  pending = usable;
   pending.forEach(p => {
     blocks.push({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
@@ -1153,10 +1210,17 @@ function renderBlockList(){
     card.className = 'block-card';
     card.innerHTML =
       '<div class="thumb"><img src="' + b.displayUrl + '" alt=""></div>' +
+      '<div class="art-broken" hidden>This picture will not show on this phone. Remove it and take it again.</div>' +
       '<div class="name">' + escapeHtml(b.name) + '</div>' +
       '<div class="qty-row"><input type="number" min="1" value="' + b.qty + '">' +
       '<span class="made">made</span></div>' +
       '<button class="remove">Remove</button>';
+    /* Art saved by an older version may be a format this phone cannot draw.
+       Say so on the card rather than leaving her looking at a broken icon. */
+    const thumbImg = card.querySelector('.thumb img');
+    thumbImg.addEventListener('error', () => {
+      card.querySelector('.art-broken').hidden = false;
+    });
     const qtyEl = card.querySelector('input');
     qtyEl.addEventListener('input', () => {
       b.qty = parseInt(qtyEl.value, 10) || 1;
