@@ -90,6 +90,12 @@ an older bundle, a fresh install downgrades itself on first launch.
 - **Four tabs.** Blocks, Layout, Guide, Settings. The page used to be one long
   scroll; the joining guide needed somewhere to live that was not below the
   layout she is trying to follow it against.
+- **The guide shows photographs, everywhere else shows drawings.** In the guide
+  she is holding the real block against the screen, so the photo is what helps;
+  in a grid square at 18px the flat drawing is the only thing still readable.
+  A separate 360px JPEG is kept per block for this, ~34KB, rather than the
+  900px working copy at ~240KB which a dozen of would not fit in the save.
+  Blocks added before this have no photo kept and fall back to the drawing.
 - **Joining guide.** Walks her through assembling the blanket one seam at a
   time, the way blankets actually go together: every side seam row by row, then
   one seam per pair of rows. A 4x5 blanket is 4x4 + 3 = 19 steps. Each step

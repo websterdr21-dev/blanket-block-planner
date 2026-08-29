@@ -938,7 +938,8 @@ function saveState(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 2,
       blocks: blocks.map(b => ({ id:b.id, name:b.name, qty:b.qty,
-                                 displayUrl:b.displayUrl, edgeColour:b.edgeColour })),
+                                 displayUrl:b.displayUrl, edgeColour:b.edgeColour,
+                                 photoThumb:b.photoThumb })),
       rows: rowsInput.value, cols: colsInput.value,
       userEditedGrid, pattern: patternSelect.value,
       result: lastResult, guideStep, activeTab
@@ -959,7 +960,8 @@ function loadState(){
   blocks = saved.blocks.map(b => ({
     id:b.id, name:b.name, qty:b.qty,
     displayUrl:b.displayUrl, photoDataUrl:b.displayUrl,
-    edgeColour: b.edgeColour || null
+    edgeColour: b.edgeColour || null,
+    photoThumb: b.photoThumb || null
   }));
   if(saved.rows) rowsInput.value = saved.rows;
   if(saved.cols) colsInput.value = saved.cols;
@@ -1030,6 +1032,21 @@ function edgeColour(img, w, h){
    show, and shrinks a 4MB phone photo to something sane to keep. If the decode
    throws, the phone genuinely cannot read that file and she is told so. */
 const PHOTO_MAX_PX = 900;
+/* The guide shows a block at about 120px on a phone, so 360 is already twice
+   what a high-density screen needs. Keeping the full 900px photo instead would
+   be ~240KB a block, and a dozen of those would not fit in the save. */
+const GUIDE_PHOTO_PX = 360;
+
+async function shrinkPhoto(dataUrl, maxPx, quality){
+  const img = await loadImage(dataUrl);
+  const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', quality);
+}
 
 async function normalisePhoto(dataUrl){
   const img = await loadImage(dataUrl);          // throws on a format it can't read
@@ -1091,7 +1108,8 @@ function addPhotoFiles(input){
       const item = {
         tempId: 'p' + Date.now() + Math.random().toString(36).slice(2,6),
         dataUrl, displayUrl: dataUrl,
-        name: guessNameFromFile(file), qty: 1, tracing: true, failed: false, edgeColour: null
+        name: guessNameFromFile(file), qty: 1, tracing: true, failed: false,
+        edgeColour: null, photoThumb: null
       };
       pending.push(item);
       renderPendingList();
@@ -1105,6 +1123,11 @@ function addPhotoFiles(input){
           item.tracing = false;
           refreshPendingRow(item);
           return;
+        }
+        try{
+          item.photoThumb = await shrinkPhoto(item.dataUrl, GUIDE_PHOTO_PX, 0.8);
+        }catch(err){
+          console.warn('Could not keep a photo for the guide.', err);
         }
         const traced = await vectorize(item.dataUrl);
         if(traced){ item.displayUrl = traced.url; item.edgeColour = traced.edgeColour; }
@@ -1190,7 +1213,8 @@ $('addAllBtn').addEventListener('click', () => {
     blocks.push({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2,6),
       name: p.name.trim(), qty: p.qty,
-      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl, edgeColour: p.edgeColour
+      photoDataUrl: p.dataUrl, displayUrl: p.displayUrl,
+      edgeColour: p.edgeColour, photoThumb: p.photoThumb
     });
   });
   pending = [];
@@ -1548,11 +1572,12 @@ function renderGuide(){
 
   if(step.kind === 'side'){
     const A = blockById(step.a), B = blockById(step.b);
-    fig.appendChild(joinPiece(A, 116));
+    fig.appendChild(joinPiece(A, 128));
     fig.appendChild(seamEl('vertical'));
-    fig.appendChild(joinPiece(B, 116));
-    $('joinText').textContent =
-      'Row ' + (step.row+1) + ': join these two blocks along the edge between them.';
+    fig.appendChild(joinPiece(B, 128));
+    $('joinText').textContent = 'Row ' + (step.row+1) + ': join ' +
+      (A ? A.name : 'this block') + ' to ' + (B ? B.name : 'this block') +
+      ', along the edge between them.';
     seamColour = (A && A.edgeColour) || (B && B.edgeColour) || null;
   } else {
     fig.appendChild(rowStrip(step.row, cols));
@@ -1582,6 +1607,15 @@ function renderGuide(){
   $('nextStep').disabled = guideStep >= steps.length - 1;
 }
 
+/* The guide is where she is holding the real block against the screen, so the
+   photo beats the drawing: it is what her block actually looks like, fuzz and
+   all. Everywhere else the flat drawing wins, because it stays readable at the
+   size a grid square gets. Blocks added before this existed have no photo kept
+   and fall back to the drawing. */
+function guideArt(b){
+  return b ? (b.photoThumb || b.displayUrl) : null;
+}
+
 /* The marigold bar standing in for the seam she is about to sew. */
 function seamEl(direction){
   const d = document.createElement('div');
@@ -1593,7 +1627,7 @@ function joinPiece(b, size){
   const d = document.createElement('div');
   d.className = 'join-piece';
   d.style.width = size + 'px'; d.style.height = size + 'px';
-  if(b) d.innerHTML = '<img src="' + b.displayUrl + '" alt="' + escapeHtml(b.name) + '">';
+  if(b) d.innerHTML = '<img src="' + guideArt(b) + '" alt="' + escapeHtml(b.name) + '">';
   return d;
 }
 
@@ -1607,7 +1641,7 @@ function rowStrip(rowIndex, cols){
     const b = id ? blockById(id) : null;
     const sq = document.createElement('div');
     sq.className = 'sq';
-    if(b) sq.innerHTML = '<img src="' + b.displayUrl + '" alt="' + escapeHtml(b.name) + '">';
+    if(b) sq.innerHTML = '<img src="' + guideArt(b) + '" alt="' + escapeHtml(b.name) + '">';
     strip.appendChild(sq);
   }
   return strip;
