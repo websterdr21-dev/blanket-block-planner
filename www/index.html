@@ -111,7 +111,9 @@
     box-shadow:0 4px 12px rgba(0,0,0,0.22);
     display:flex;flex-direction:column;gap:8px;
   }
-  .block-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;background:#fff;}
+  .thumb{position:relative;width:100%;border-radius:9px;overflow:hidden;background:#fff;}
+  .thumb::before{content:"";display:block;padding-top:100%;}
+  .thumb img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
   .block-card .name{font-weight:650;font-size:0.95rem;line-height:1.25;overflow-wrap:anywhere;}
   .block-card .qty-row{display:flex;align-items:center;gap:8px;}
   .block-card input[type="number"]{width:72px;min-height:44px;padding:8px 10px;}
@@ -152,11 +154,12 @@
   .blanket-grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);
                 gap:clamp(1px,0.8vw,4px);width:100%;}
   .blanket-grid .cell{
-    aspect-ratio:1;border-radius:5px;overflow:hidden;
+    position:relative;border-radius:5px;overflow:hidden;
     border:1px solid var(--wool-cream-dim);background:var(--wool-cream-dim);
     padding:0;min-height:0;
   }
-  .blanket-grid .cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .blanket-grid .cell::before{content:"";display:block;padding-top:100%;}
+  .blanket-grid .cell img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}
   .blanket-grid.editing .cell{cursor:pointer;border-color:var(--berry);}
   .blanket-grid .cell.picked{outline:3px solid var(--marigold);outline-offset:-3px;}
 
@@ -176,7 +179,9 @@
   .join-piece{background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--wool-cream-dim);}
   .join-piece img{display:block;width:100%;height:100%;object-fit:cover;}
   .join-strip{display:grid;gap:2px;background:var(--wool-cream-dim);padding:2px;border-radius:8px;}
-  .join-strip img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:3px;background:#fff;}
+  .join-strip .sq{position:relative;border-radius:3px;overflow:hidden;background:#fff;}
+  .join-strip .sq::before{content:"";display:block;padding-top:100%;}
+  .join-strip .sq img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}
   .seam{background:var(--marigold);border-radius:999px;}
   .seam.vertical{width:5px;align-self:stretch;margin:0 8px;}
   .seam.horizontal{height:5px;align-self:stretch;width:100%;margin:8px 0;}
@@ -371,6 +376,13 @@
       <h2>About</h2>
       <div class="settings-list" id="aboutList"></div>
       <p style="margin:14px 0 0;font-size:0.9rem;color:var(--sage);">Your photos are turned into drawings on the phone itself. Nothing is uploaded anywhere.</p>
+    </div>
+
+    <div class="card">
+      <h2>If something looks wrong</h2>
+      <p style="margin:0 0 12px;font-size:0.93rem;">Read this out to whoever set the app up for you.</p>
+      <pre id="diagText" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:0.8rem;background:#fff;border-radius:9px;padding:12px;margin:0 0 12px;user-select:text;-webkit-user-select:text;"></pre>
+      <button class="secondary" id="copyDiagBtn" style="width:100%;">Copy this</button>
     </div>
 
     <div class="card">
@@ -906,6 +918,7 @@ function showTab(name){
     b.setAttribute('aria-selected', String(b.dataset.tab === name));
   });
   if(name === 'guide') renderGuide();
+  if(name === 'settings') renderAbout();
   window.scrollTo(0, 0);
   saveState();
 }
@@ -1139,7 +1152,7 @@ function renderBlockList(){
     const card = document.createElement('div');
     card.className = 'block-card';
     card.innerHTML =
-      '<img src="' + b.displayUrl + '" alt="">' +
+      '<div class="thumb"><img src="' + b.displayUrl + '" alt=""></div>' +
       '<div class="name">' + escapeHtml(b.name) + '</div>' +
       '<div class="qty-row"><input type="number" min="1" value="' + b.qty + '">' +
       '<span class="made">made</span></div>' +
@@ -1528,9 +1541,10 @@ function rowStrip(rowIndex, cols){
   for(let c=0; c<cols; c++){
     const id = lastResult.grid[rowIndex*cols + c];
     const b = id ? blockById(id) : null;
-    const img = document.createElement('img');
-    if(b){ img.src = b.displayUrl; img.alt = b.name; }
-    strip.appendChild(img);
+    const sq = document.createElement('div');
+    sq.className = 'sq';
+    if(b) sq.innerHTML = '<img src="' + b.displayUrl + '" alt="' + escapeHtml(b.name) + '">';
+    strip.appendChild(sq);
   }
   return strip;
 }
@@ -1563,7 +1577,68 @@ async function renderAbout(){
   $('aboutList').innerHTML = rows
     .map(([k,v]) => '<div class="settings-row"><span>' + k + '</span><span>' + escapeHtml(v) + '</span></div>')
     .join('');
+  renderDiagnostics();
 }
+
+/* Enough to tell, from her phone, why pictures might not be showing: whether
+   the WebView is old enough to lack the CSS the squares rely on, whether the
+   tracer loaded, and whether the first block's picture actually decoded. */
+async function renderDiagnostics(){
+  const chrome = (navigator.userAgent.match(/Chrome\/([\d.]+)/) || [])[1] || 'unknown';
+  const lines = [];
+  lines.push('webview: Chrome ' + chrome);
+  lines.push('android: ' + ((navigator.userAgent.match(/Android ([\d.]+)/) || [])[1] || 'not android'));
+  lines.push('aspect-ratio: ' + (window.CSS && CSS.supports ? CSS.supports('aspect-ratio','1') : 'cannot test'));
+  const anyDrawn = blocks.some(b => (b.displayUrl || '').startsWith('data:image/svg'));
+  lines.push('tracer: ' + (vt.mod ? 'loaded' : (anyDrawn ? 'loaded earlier' :
+             (vt.loading ? 'FAILED to load' : 'not used yet'))));
+  lines.push('blocks: ' + blocks.length);
+  lines.push('layout: ' + (lastResult ? lastResult.rows + 'x' + lastResult.cols : 'none'));
+
+  const b = blocks[0];
+  if(b){
+    const art = b.displayUrl || '';
+    lines.push('first block art: ' + (art.startsWith('data:image/svg') ? 'drawing' : 'photo') +
+               ' ' + Math.round(art.length/1024) + 'KB');
+    try{
+      const img = await loadImage(art);
+      lines.push('first block decodes: yes ' + img.naturalWidth + 'x' + img.naturalHeight);
+    }catch(err){
+      lines.push('first block decodes: NO');
+    }
+  }
+
+  /* Every other tab is display:none while she is reading this, so measuring a
+     real thumbnail would always say 0x0. Measure a probe using the same square
+     technique the pictures rely on: if this comes back flat, that is the bug. */
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;left:-9999px;top:0;width:40px;';
+  probe.innerHTML = '<div class="thumb"><img alt=""></div>';
+  document.body.appendChild(probe);
+  const ph = probe.querySelector('.thumb').getBoundingClientRect().height;
+  probe.remove();
+  lines.push('square test: 40px wide -> ' + Math.round(ph) + 'px tall' +
+             (Math.abs(ph - 40) <= 2 ? ' (ok)' : ' (WRONG, should be 40)'));
+  const el = $('diagText');
+  if(el) el.textContent = lines.join('\n');
+}
+
+const copyBtn = $('copyDiagBtn');
+if(copyBtn) copyBtn.addEventListener('click', async () => {
+  const text = $('diagText').textContent;
+  try{
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => { copyBtn.textContent = 'Copy this'; }, 1800);
+  }catch(err){
+    /* Clipboard blocked: select it instead so she can copy it by hand. */
+    const range = document.createRange();
+    range.selectNodeContents($('diagText'));
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    copyBtn.textContent = 'Now press Copy';
+  }
+});
 
 /* ---------------------------------------------------------------------------
    Live updates

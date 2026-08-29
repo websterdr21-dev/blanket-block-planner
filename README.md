@@ -73,6 +73,11 @@ an older bundle, a fresh install downgrades itself on first launch.
 
 ## Notes
 
+- **No `aspect-ratio`.** Square cells use the padding-top trick instead.
+  `aspect-ratio` needs Android WebView 88; on anything older every square
+  collapses to no height, which looks exactly like the pictures failing to
+  load. Settings carries a diagnostics readout that probes the technique
+  directly, so this is answerable from her phone rather than by guesswork.
 - **Four tabs.** Blocks, Layout, Guide, Settings. The page used to be one long
   scroll; the joining guide needed somewhere to live that was not below the
   layout she is trying to follow it against.
